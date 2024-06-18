@@ -3,9 +3,9 @@ import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
 import { useState } from 'react';
 import { request } from './util';
 
-const validIP = (ip: string): boolean => {
+const validAddress = (address: string): boolean => {
   // https://stackoverflow.com/a/27434991
-  return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
+  return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(address) || address === "localhost";
 }
 
 const App = () => {
@@ -16,6 +16,7 @@ const App = () => {
   const [connected, setConnected] = useState(false);
   const [connectivityLoading, setConnectivityLoading] = useState(false);
   const [lastScreenshot, setLastScreenshot] = useState("Never");
+  const [statusLoading, setStatusLoading] = useState(false);
   const [lastStatus, setLastStatus] = useState("Never");
   const [address, setAddress] = useState("192.168.0.1");
   const [port, setPort] = useState(4444);
@@ -29,7 +30,7 @@ const App = () => {
 
   // Update states and do input validation
   const updateAddress = (event: any) => {
-    setInvalidInput(!validIP(event.target.value));
+    setInvalidInput(!validAddress(event.target.value));
     setAddress(event.target.value);
   };
   const updatePort = (event: any) => {
@@ -39,7 +40,7 @@ const App = () => {
 
   const checkConnectivity = async () => {
     setConnectivityLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString(), { timeout: 10000 });
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: 10000 });
     setConnectivityLoading(false);
     if (response.success) {
       toast({
@@ -64,8 +65,26 @@ const App = () => {
     }
   };
 
-  const refreshStatus = () => {
-
+  const refreshStatus = async () => {
+    setStatusLoading(true);
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/status", { timeout: 10000 });
+    setStatusLoading(false);
+    if (response.success) {
+      const status = JSON.parse(response.data);
+      setLastStatus(new Date().toLocaleString());
+      setElapsedTime(status["elapsed_time"]);
+      setActiveBlock(status["active_block"]);
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset at address "${address}"`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(false);
+    }
   };
 
   return (
@@ -106,7 +125,15 @@ const App = () => {
         <Flex w={"30%"} direction={"column"} gap={"2"}>
           <Heading size={"md"}>Headset Status</Heading>
           <Flex w={"100%"} direction={"row"} gap={"6"} align={"center"}>
-            <Button colorScheme={"blue"} isDisabled={!connected}>Refresh</Button>
+            <Button
+              colorScheme={"blue"}
+              isDisabled={!connected}
+              isLoading={statusLoading}
+              loadingText={"Refreshing..."}
+              onClick={refreshStatus}
+            >
+              Refresh
+            </Button>
             <Text color={"gray.500"} fontSize={"sm"}>Last Update: {lastStatus}</Text>
           </Flex>
           <Heading size={"sm"}>Status</Heading>
