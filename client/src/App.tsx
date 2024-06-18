@@ -1,6 +1,7 @@
-import { Button, Flex, FormControl, Heading, Input, Text } from '@chakra-ui/react'
-import { CheckCircleIcon, RepeatIcon, WarningIcon } from '@chakra-ui/icons'
+import { Button, Flex, FormControl, Heading, Input, Text, useToast } from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
 import { useState } from 'react';
+import { request } from './util';
 
 const validIP = (ip: string): boolean => {
   // https://stackoverflow.com/a/27434991
@@ -13,17 +14,58 @@ const App = () => {
 
   // Connectivity and status update states
   const [connected, setConnected] = useState(false);
+  const [connectivityLoading, setConnectivityLoading] = useState(false);
   const [lastScreenshot, setLastScreenshot] = useState("Never");
   const [lastStatus, setLastStatus] = useState("Never");
-  const [address, setAddress] = useState("192.168.0.1")
+  const [address, setAddress] = useState("192.168.0.1");
+  const [port, setPort] = useState(4444);
 
   // Response states
   const [elapsedTime, setElapsedTime] = useState(0.0);
   const [activeBlock, setActiveBlock] = useState("Inactive");
 
+  // Toast instance
+  const toast = useToast();
+
+  // Update states and do input validation
   const updateAddress = (event: any) => {
     setInvalidInput(!validIP(event.target.value));
     setAddress(event.target.value);
+  };
+  const updatePort = (event: any) => {
+    setInvalidInput(isNaN(event.target.value) || event.target.value > 9999 || event.target.value < 0);
+    setPort(event.target.value);
+  };
+
+  const checkConnectivity = async () => {
+    setConnectivityLoading(true);
+    const response = await request<any>("http://" + address + ":" + port.toString(), { timeout: 10000 });
+    setConnectivityLoading(false);
+    if (response.success) {
+      toast({
+        status: "success",
+        title: "Connected!",
+        description: `Connected to headset at address "${address}"`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(true);
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset at address "${address}"`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(false);
+    }
+  };
+
+  const refreshStatus = () => {
+
   };
 
   return (
@@ -32,10 +74,17 @@ const App = () => {
       <Flex w={"60%"}>
         <FormControl isInvalid={invalidInput}>
           <Flex w={"100%"} direction={"row"} gap={"2"}>
-            <Flex w={"60%"}>
+            <Flex w={"60%"} gap={"2"}>
               <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} />
+              <Input w={"20%"} type={"number"} placeholder={"Port"} value={port} onChange={updatePort} />
             </Flex>
-            <Button colorScheme={"green"} leftIcon={<RepeatIcon />} isDisabled={invalidInput}>
+            <Button
+              colorScheme={"green"}
+              isDisabled={invalidInput}
+              isLoading={connectivityLoading}
+              loadingText={"Testing..."}
+              onClick={checkConnectivity}
+            >
               Test Connectivity
             </Button>
             <Flex direction={"row"} align={"center"} gap={"2"}>
