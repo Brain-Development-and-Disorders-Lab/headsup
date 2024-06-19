@@ -4,10 +4,20 @@ import { useEffect, useState } from 'react';
 import { request } from './util';
 import dayjs from 'dayjs';
 
+// Custom types
+type HeadsetState = {
+  "active_block": string,
+  "current_trial": string,
+  "total_trials": string,
+  "device_name": string,
+  "device_model": string,
+  "device_battery": string,
+};
+
 const validAddress = (address: string): boolean => {
   // https://stackoverflow.com/a/27434991
   return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(address) || address === "localhost";
-}
+};
 
 const App = () => {
   // Input states
@@ -31,6 +41,15 @@ const App = () => {
   const [statusInterval, setStatusInterval] = useState(-1);
   const [lastStatus, setLastStatus] = useState("");
   const [activeBlock, setActiveBlock] = useState("Inactive");
+  const [currentTrial, setCurrentTrial] = useState(0);
+  const [totalTrials, setTotalTrials] = useState(0);
+
+  // Device details
+  const [deviceName, setDeviceName] = useState("");
+  const [deviceModel, setDeviceModel] = useState("");
+  const [deviceBattery, setDeviceBattery] = useState(0.0);
+
+  // Logs
   const [systemLogs, setSystemLogs] = useState([] as string[]);
 
   // Toast instance
@@ -148,16 +167,29 @@ const App = () => {
       });
     }
     setHeadsetState("disconnected");
+    setActiveBlock("Inactive");
+    setCurrentTrial(0);
+    setTotalTrials(0);
+    setDeviceBattery(0.0);
   };
 
   /**
    * Retrieve the status values from the headset
    */
   const refreshStatus = async () => {
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/status", { timeout: 5000 });
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/status", { timeout: 5000 });
     if (response.success) {
       setLastStatus(new Date().toLocaleString());
-      setActiveBlock(response.data["active_block"]);
+
+      // Extract status data from response
+      setActiveBlock(response.data.active_block);
+      setCurrentTrial(parseInt(response.data.current_trial));
+      setTotalTrials(parseInt(response.data.total_trials));
+
+      // Extract device information from response
+      setDeviceName(response.data.device_name);
+      setDeviceModel(response.data.device_model);
+      setDeviceBattery(parseFloat(response.data.device_battery));
     } else {
       toast({
         status: "error",
@@ -226,29 +258,55 @@ const App = () => {
       <Flex w={"100%"} align={"center"}>
         <Heading>Headsup</Heading>
         <Spacer />
-        {headsetState === "connected" &&
-          <Flex direction={"row"} align={"center"} gap={"2"}>
-            <CheckCircleIcon color={"green"} />
-            <Text color={"green.600"}>Headset connected</Text>
+        <Flex direction={"column"} minW={"12%"} p={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"}>
+          {headsetState === "connected" &&
+            <Flex direction={"row"} align={"center"} gap={"2"}>
+              <CheckCircleIcon color={"green"} />
+              <Text fontSize={"small"} color={"green.600"}>Headset connected</Text>
+            </Flex>
+          }
+          {headsetState === "online" &&
+            <Flex direction={"row"} align={"center"} gap={"2"}>
+              <InfoIcon color={"cornflowerblue"} />
+              <Text fontSize={"small"} color={"cornflowerblue"}>Headset online</Text>
+            </Flex>
+          }
+          {headsetState === "disconnected" &&
+            <Flex direction={"row"} align={"center"} gap={"2"}>
+              <WarningIcon color={"red"} />
+              <Text fontSize={"small"} color={"red.600"}>Headset offline</Text>
+            </Flex>
+          }
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Name:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>
+              {connected ? deviceName : "Offline"}
+            </Text>
           </Flex>
-        }
-        {headsetState === "online" &&
-          <Flex direction={"row"} align={"center"} gap={"2"}>
-            <InfoIcon color={"cornflowerblue"} />
-            <Text color={"cornflowerblue"}>Headset online</Text>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Model:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>
+              {connected ? deviceModel : "Offline"}
+            </Text>
           </Flex>
-        }
-        {headsetState === "disconnected" &&
-          <Flex direction={"row"} align={"center"} gap={"2"}>
-            <Text fontWeight={"semibold"} color={"gray.600"}>Status:</Text>
-            <WarningIcon color={"red"} />
-            <Text color={"red.600"}>Headset offline</Text>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Battery:</Text>
+            {connected &&
+              <Text fontSize={"small"} color={deviceBattery > 0.5 ? "green.600" : "orange.600"}>
+                {`${deviceBattery * 100}%`}
+              </Text>
+            }
+            {!connected &&
+              <Text fontSize={"small"} color={"gray.600"}>
+                Offline
+              </Text>
+            }
           </Flex>
-        }
+        </Flex>
       </Flex>
-      <Flex w={"60%"}>
-        <FormControl isInvalid={invalidInput}>
-          <Text fontWeight={"semibold"} color={"gray.600"}>Connection</Text>
+      <Flex w={"100%"}>
+        <FormControl isInvalid={invalidInput} maxW={"70%"}>
+          <Text fontWeight={"semibold"} color={"gray.600"}>Headset Network Details</Text>
           <Flex w={"100%"} direction={"row"} gap={"2"}>
             <Flex w={"60%"} gap={"2"}>
               <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} isDisabled={connectionLoading || connectivityLoading || connected} />
@@ -286,7 +344,7 @@ const App = () => {
       <Flex direction={"row"} gap={"2"}>
         <Flex w={"60%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"}>
           <Flex align={"center"}>
-            <Heading size={"lg"}>Headset Displays</Heading>
+            <Heading size={"md"}>Displays</Heading>
             <Spacer />
             <Button
               colorScheme={"blue"}
@@ -320,17 +378,26 @@ const App = () => {
           }
           {screenshotData.length === 0 &&
             <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
-              {headsetState !== "connected" && <Text color={"white"}>Display Offline</Text>}
+              {headsetState !== "connected" && <Text color={"white"}>Offline</Text>}
             </Flex>
           }
         </Flex>
         <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
-          <Flex w={"100%"} direction={"row"} align={"center"}>
-            <Heading size={"lg"}>Headset Status</Heading>
+          <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
+            <Heading size={"sm"}>Status</Heading>
+            <Spacer />
+            <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:MM:ss") : "Never"}</Text>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:MM:ss") : "Never"}</Text>
-          <Heading size={"sm"}>Status</Heading>
-          <Text>Active block: {activeBlock}</Text>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Active block:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{activeBlock}</Text>
+          </Flex>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current trial:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials}</Text>
+            <Spacer />
+            <Text fontSize={"small"} color={"gray.600"}>{currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete</Text>
+          </Flex>
           <Heading size={"sm"}>Logs</Heading>
           <VStack
             border={"1px"}
