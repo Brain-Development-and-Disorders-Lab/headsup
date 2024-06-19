@@ -30,6 +30,7 @@ const App = () => {
   const [lastStatus, setLastStatus] = useState("Never");
   const [elapsedTime, setElapsedTime] = useState(0.0);
   const [activeBlock, setActiveBlock] = useState("Inactive");
+  const [systemLogs, setSystemLogs] = useState([] as string[]);
 
   // Toast instance
   const toast = useToast();
@@ -101,7 +102,10 @@ const App = () => {
   };
 
   const startSync = () => {
-    const interval = setInterval(updateStatus, 500);
+    const interval = setInterval(() => {
+      updateStatus();
+      updateLogs();
+    }, 500);
     setStatusInverval(interval);
   };
 
@@ -144,6 +148,30 @@ const App = () => {
       }
     }
   };
+
+  const updateLogs = async () => {
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: 5000 });
+    if (response.success) {
+      const logs = JSON.parse(response.data);
+      if (logs.length > 0) {
+        setSystemLogs(systemLogs => [...systemLogs, JSON.parse(response.data)] );
+      }
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset at address "${address}"`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+
+      // Stop sync due to connectivity error
+      if (connected) {
+        await stopSync(true);
+      }
+    }
+  }
 
   return (
     <Flex w={"100%"} minH={"100vh"} direction={"column"} gap={"4"} p={"4"}>
@@ -220,7 +248,7 @@ const App = () => {
             {headsetState !== "connected" && <Text color={"white"}>Display Offline</Text>}
           </Flex>
         </Flex>
-        <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"}>
+        <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
           <Flex w={"100%"} direction={"row"} align={"center"}>
             <Heading size={"lg"}>Headset Status</Heading>
           </Flex>
@@ -238,10 +266,12 @@ const App = () => {
             align={"stretch"}
             h={"100%"}
             bg={"gray.50"}
+            overflowY={"auto"}
           >
-            <StackItem alignContent={"center"}>Test Item 1</StackItem>
-            <StackItem>Test Item 2</StackItem>
-            <StackItem>Test Item 3</StackItem>
+            {systemLogs.length === 0 && <Text>Waiting for log output...</Text>}
+            {systemLogs.length > 0 && systemLogs.map((log, index) => {
+              return <StackItem key={`log_${index}`}><Text fontSize={"x-small"}>{log}</Text></StackItem>;
+            })}
           </VStack>
         </Flex>
       </Flex>
