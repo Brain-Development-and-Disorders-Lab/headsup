@@ -4,9 +4,9 @@ Headsup is a dashboard tool to remotely monitor and interact with VR headsets ov
 
 ## Components
 
-Client: UI dashboard presenting a live video feed and debugging information via a web browser.
-Server: Signaling server to handle communications between the client application and the VR headset endpoint.
-Unity: Required Unity integration for VR applications to stream information.
+Client: Dashboard UI presenting a screenshot feed and debugging information via a web browser.
+
+Unity: Required Unity scripts for VR applications to stream information.
 
 ## License
 

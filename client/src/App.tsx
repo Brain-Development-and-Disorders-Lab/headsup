@@ -1,6 +1,6 @@
 import { Button, Flex, FormControl, Heading, Input, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from '@chakra-ui/react'
 import { CheckCircleIcon, InfoIcon, WarningIcon } from '@chakra-ui/icons'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { request } from './util';
 import dayjs from 'dayjs';
 
@@ -24,13 +24,12 @@ const App = () => {
   const [headsetState, setHeadsetState] = useState("disconnected" as "disconnected" | "online" | "connected")
 
   // Screenshot details
-  const [lastScreenshot, setLastScreenshot] = useState("Never");
+  const [lastScreenshot, setLastScreenshot] = useState("");
   const [screenshotData, setScreenshotData] = useState([] as string[]);
 
   // Status details
-  const [statusInterval, setStatusInverval] = useState(0);
-  const [lastStatus, setLastStatus] = useState("Never");
-  const [elapsedTime, setElapsedTime] = useState(0.0);
+  const [statusInterval, setStatusInterval] = useState(-1);
+  const [lastStatus, setLastStatus] = useState("");
   const [activeBlock, setActiveBlock] = useState("Inactive");
   const [systemLogs, setSystemLogs] = useState([] as string[]);
 
@@ -47,7 +46,16 @@ const App = () => {
     setPort(event.target.value);
   };
 
-  const checkConnectivity = async () => {
+  useEffect(() => {
+    if (!connected) {
+      stopSync(false);
+    }
+  }, [connected]);
+
+  /**
+   * Utility function to test connectivity and response from headset
+   */
+  const testConnectivity = async () => {
     setConnectivityLoading(true);
     const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: 10000 });
     setConnectivityLoading(false);
@@ -74,7 +82,10 @@ const App = () => {
     }
   };
 
-  const makeConnection = async () => {
+  /**
+   * Function to establish that connectivity to the headset exists, and start the synchronization interval function
+   */
+  const connect = async () => {
     setConnectionLoading(true);
     const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: 5000 });
     setConnectionLoading(false);
@@ -99,19 +110,32 @@ const App = () => {
         isClosable: true,
         position: "bottom-right",
       });
-      setHeadsetState("disconnected");
+      setConnected(false);
     }
   };
 
-  const startSync = () => {
-    const interval = setInterval(() => {
-      updateStatus();
-      updateLogs();
-    }, 500);
-    setStatusInverval(interval);
+  /**
+   * Handles clicking "Disconnect" button
+   */
+  const disconnect = () => {
+    setConnected(false);
   };
 
-  const stopSync = async (unexpected: boolean) => {
+  /**
+   * Function to create a new interval responsible for refreshing the status and log output
+   */
+  const startSync = () => {
+   setStatusInterval(setInterval(() => {
+      refreshStatus();
+      updateLogs();
+    }, 500));
+  };
+
+  /**
+   * Function to clear interval responsible for synchronizing data between dashboard and headset
+   * @param unexpected Denotes if this function is being called out of error or on user disconnect
+   */
+  const stopSync = (unexpected: boolean) => {
     clearInterval(statusInterval);
     if (unexpected) {
       toast({
@@ -124,37 +148,37 @@ const App = () => {
       });
     }
     setHeadsetState("disconnected");
-    setConnected(false);
   };
 
-  const updateStatus = async () => {
+  /**
+   * Retrieve the status values from the headset
+   */
+  const refreshStatus = async () => {
     const response = await request<any>("http://" + address + ":" + port.toString() + "/status", { timeout: 5000 });
     if (response.success) {
       setLastStatus(new Date().toLocaleString());
-      setElapsedTime(response.data["elapsed_time"]);
       setActiveBlock(response.data["active_block"]);
     } else {
       toast({
         status: "error",
         title: "Connectivity Error",
-        description: `Could not connect to headset at address "${address}"`,
+        description: `Could not connect to headset at address "${"http://" + address + ":" + port.toString()}"`,
         duration: 2000,
         isClosable: true,
         position: "bottom-right",
       });
-
-      // Stop sync due to connectivity error
-      if (connected) {
-        await stopSync(true);
-      }
+      setConnected(false);
     }
   };
 
+  /**
+   * Retrieve log output from the headset
+   */
   const updateLogs = async () => {
     const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: 5000 });
     if (response.success) {
       if (response.data.length > 0) {
-        setSystemLogs(systemLogs => [...systemLogs, response.data] );
+        setSystemLogs(systemLogs => [...response.data.reverse(), ...systemLogs] );
       }
     } else {
       toast({
@@ -165,23 +189,25 @@ const App = () => {
         isClosable: true,
         position: "bottom-right",
       });
-
-      // Stop sync due to connectivity error
-      if (connected) {
-        await stopSync(true);
-      }
+      setConnected(false);
     }
   }
 
-  const updateScreen = async () => {
+  /**
+   * Retrieve screenshots of the headset displays
+   */
+  const refreshScreen = async () => {
+    // Send a trigger request first
     const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: 5000 });
-    if (response.success && response.data !== "") {
-      const screenshots = [];
-      for (let encoded of response.data) {
-        screenshots.push(`data:image/jpeg;base64,${encoded}`);
+    if (response.success) {
+      if (response.data.length > 0 && response.data.filter((s: string) => s !== "").length > 0) {
+        const screenshots = [];
+        for (let encoded of response.data) {
+          screenshots.push(`data:image/jpeg;base64,${encoded}`);
+        }
+        setScreenshotData(screenshots);
+        setLastScreenshot(new Date().toLocaleString());
       }
-      setScreenshotData(screenshots);
-      setLastScreenshot(new Date().toLocaleString());
     } else {
       toast({
         status: "error",
@@ -191,13 +217,14 @@ const App = () => {
         isClosable: true,
         position: "bottom-right",
       });
+      setConnected(false);
     }
   }
 
   return (
     <Flex w={"100%"} minH={"100vh"} direction={"column"} gap={"4"} p={"4"}>
       <Flex w={"100%"} align={"center"}>
-        <Heading>Headsup :: Headset</Heading>
+        <Heading>Headsup</Heading>
         <Spacer />
         {headsetState === "connected" &&
           <Flex direction={"row"} align={"center"} gap={"2"}>
@@ -231,7 +258,7 @@ const App = () => {
               isDisabled={invalidInput || connectionLoading || connected}
               isLoading={connectivityLoading}
               loadingText={"Testing..."}
-              onClick={checkConnectivity}
+              onClick={testConnectivity}
             >
               Test
             </Button>
@@ -240,7 +267,7 @@ const App = () => {
               isDisabled={invalidInput || connected}
               isLoading={connectionLoading}
               loadingText={"Connecting..."}
-              onClick={makeConnection}
+              onClick={connect}
             >
               Connect
             </Button>
@@ -248,7 +275,7 @@ const App = () => {
               <Button
                 colorScheme={"red"}
                 loadingText={"Disconnecting..."}
-                onClick={() => stopSync(false)}
+                onClick={disconnect}
               >
                 Disconnect
               </Button>
@@ -259,18 +286,18 @@ const App = () => {
       <Flex direction={"row"} gap={"2"}>
         <Flex w={"60%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"}>
           <Flex align={"center"}>
-            <Heading size={"lg"}>Headset Display</Heading>
+            <Heading size={"lg"}>Headset Displays</Heading>
             <Spacer />
             <Button
               colorScheme={"blue"}
               isDisabled={!connected}
-              onClick={updateScreen}
+              onClick={refreshScreen}
             >
-              Update
+              Refresh
             </Button>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {dayjs(lastScreenshot).format("hh:MM:ss")}</Text>
-          {screenshotData.length > 0 &&
+          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastScreenshot !== "" ? dayjs(lastScreenshot).format("hh:MM:ss") : "Never"}</Text>
+          {screenshotData.filter((s) => s !== "").length > 0 &&
             <Tabs>
               <TabList>
                 {screenshotData.map((_s, i) => {
@@ -301,10 +328,9 @@ const App = () => {
           <Flex w={"100%"} direction={"row"} align={"center"}>
             <Heading size={"lg"}>Headset Status</Heading>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {dayjs(lastStatus).format("hh:MM:ss")}</Text>
+          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:MM:ss") : "Never"}</Text>
           <Heading size={"sm"}>Status</Heading>
           <Text>Active block: {activeBlock}</Text>
-          <Text>Elapsed time: {elapsedTime}</Text>
           <Heading size={"sm"}>Logs</Heading>
           <VStack
             border={"1px"}
@@ -319,13 +345,10 @@ const App = () => {
             flexDirection={"column-reverse"}
           >
             {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for log output...</Text>}
-            {systemLogs.length > 0 && systemLogs.reverse().map((log, index) => {
+            {systemLogs.length > 0 && systemLogs.map((log, index) => {
               return (
                 <StackItem key={`log_${index}`}>
-                  <Flex direction={"row"} gap={"1"}>
-                    <Text fontSize={"x-small"} fontWeight={"semibold"}>({dayjs(new Date()).format("HH:MM:ss")}): </Text>
-                    <Text fontSize={"x-small"}>{log}</Text>
-                  </Flex>
+                  <Text fontSize={"x-small"}>{log}</Text>
                 </StackItem>
               );
             })}
