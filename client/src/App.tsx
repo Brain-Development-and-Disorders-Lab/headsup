@@ -24,6 +24,7 @@ const App = () => {
 
   // Screenshot details
   const [lastScreenshot, setLastScreenshot] = useState("Never");
+  const [screenshotData, setScreenshotData] = useState("");
 
   // Status details
   const [statusInterval, setStatusInverval] = useState(0);
@@ -128,10 +129,9 @@ const App = () => {
   const updateStatus = async () => {
     const response = await request<any>("http://" + address + ":" + port.toString() + "/status", { timeout: 5000 });
     if (response.success) {
-      const status = JSON.parse(response.data);
       setLastStatus(new Date().toLocaleString());
-      setElapsedTime(status["elapsed_time"]);
-      setActiveBlock(status["active_block"]);
+      setElapsedTime(response.data["elapsed_time"]);
+      setActiveBlock(response.data["active_block"]);
     } else {
       toast({
         status: "error",
@@ -152,9 +152,8 @@ const App = () => {
   const updateLogs = async () => {
     const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: 5000 });
     if (response.success) {
-      const logs = JSON.parse(response.data);
-      if (logs.length > 0) {
-        setSystemLogs(systemLogs => [...systemLogs, JSON.parse(response.data)] );
+      if (response.data.length > 0) {
+        setSystemLogs(systemLogs => [...systemLogs, response.data] );
       }
     } else {
       toast({
@@ -170,6 +169,23 @@ const App = () => {
       if (connected) {
         await stopSync(true);
       }
+    }
+  }
+
+  const updateScreen = async () => {
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: 5000 });
+    if (response.success && response.data !== "") {
+      setScreenshotData(`data:image/jpeg;base64,${response.data}`);
+      setLastScreenshot(new Date().toLocaleString());
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset at address "${address}"`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
     }
   }
 
@@ -226,7 +242,6 @@ const App = () => {
             {connected &&
               <Button
                 colorScheme={"red"}
-                // isLoading={}
                 loadingText={"Disconnecting..."}
                 onClick={() => stopSync(false)}
               >
@@ -241,12 +256,23 @@ const App = () => {
           <Flex align={"center"}>
             <Heading size={"lg"}>Headset Display</Heading>
             <Spacer />
-            <Button colorScheme={"blue"} isDisabled={!connected}>Update</Button>
+            <Button
+              colorScheme={"blue"}
+              isDisabled={!connected}
+              onClick={updateScreen}
+            >
+              Update
+            </Button>
           </Flex>
           <Text color={"gray.500"} fontSize={"sm"}>Last Update: {lastScreenshot}</Text>
-          <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
-            {headsetState !== "connected" && <Text color={"white"}>Display Offline</Text>}
-          </Flex>
+          {screenshotData !== "" &&
+            <img src={screenshotData} />
+          }
+          {screenshotData === "" &&
+            <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
+              {headsetState !== "connected" && <Text color={"white"}>Display Offline</Text>}
+            </Flex>
+          }
         </Flex>
         <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
           <Flex w={"100%"} direction={"row"} align={"center"}>
