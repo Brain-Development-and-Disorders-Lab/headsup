@@ -1,7 +1,8 @@
-import { Button, Flex, FormControl, Heading, Input, Spacer, StackItem, Text, VStack, useToast } from '@chakra-ui/react'
+import { Button, Flex, FormControl, Heading, Input, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from '@chakra-ui/react'
 import { CheckCircleIcon, InfoIcon, WarningIcon } from '@chakra-ui/icons'
 import { useState } from 'react';
 import { request } from './util';
+import dayjs from 'dayjs';
 
 const validAddress = (address: string): boolean => {
   // https://stackoverflow.com/a/27434991
@@ -24,7 +25,7 @@ const App = () => {
 
   // Screenshot details
   const [lastScreenshot, setLastScreenshot] = useState("Never");
-  const [screenshotData, setScreenshotData] = useState("");
+  const [screenshotData, setScreenshotData] = useState([] as string[]);
 
   // Status details
   const [statusInterval, setStatusInverval] = useState(0);
@@ -175,7 +176,11 @@ const App = () => {
   const updateScreen = async () => {
     const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: 5000 });
     if (response.success && response.data !== "") {
-      setScreenshotData(`data:image/jpeg;base64,${response.data}`);
+      const screenshots = [];
+      for (let encoded of response.data) {
+        screenshots.push(`data:image/jpeg;base64,${encoded}`);
+      }
+      setScreenshotData(screenshots);
       setLastScreenshot(new Date().toLocaleString());
     } else {
       toast({
@@ -264,11 +269,29 @@ const App = () => {
               Update
             </Button>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Update: {lastScreenshot}</Text>
-          {screenshotData !== "" &&
-            <img src={screenshotData} />
+          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {dayjs(lastScreenshot).format("hh:MM:ss")}</Text>
+          {screenshotData.length > 0 &&
+            <Tabs>
+              <TabList>
+                {screenshotData.map((_s, i) => {
+                  return (
+                    <Tab key={`tab_${i}`} fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Display: {i}</Tab>
+                  )
+                })}
+              </TabList>
+
+              <TabPanels>
+                {screenshotData.map((s, i) => {
+                  return (
+                    <TabPanel key={`tab_panel_${i}`}>
+                      <img src={s} width={600} />
+                    </TabPanel>
+                  )
+                })}
+              </TabPanels>
+            </Tabs>
           }
-          {screenshotData === "" &&
+          {screenshotData.length === 0 &&
             <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
               {headsetState !== "connected" && <Text color={"white"}>Display Offline</Text>}
             </Flex>
@@ -278,7 +301,7 @@ const App = () => {
           <Flex w={"100%"} direction={"row"} align={"center"}>
             <Heading size={"lg"}>Headset Status</Heading>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Update: {lastStatus}</Text>
+          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {dayjs(lastStatus).format("hh:MM:ss")}</Text>
           <Heading size={"sm"}>Status</Heading>
           <Text>Active block: {activeBlock}</Text>
           <Text>Elapsed time: {elapsedTime}</Text>
@@ -288,15 +311,23 @@ const App = () => {
             borderColor={"gray.200"}
             rounded={"md"}
             p={"2"}
-            spacing={"2"}
+            spacing={"1"}
             align={"stretch"}
             h={"100%"}
             bg={"gray.50"}
             overflowY={"auto"}
+            flexDirection={"column-reverse"}
           >
-            {systemLogs.length === 0 && <Text>Waiting for log output...</Text>}
-            {systemLogs.length > 0 && systemLogs.map((log, index) => {
-              return <StackItem key={`log_${index}`}><Text fontSize={"x-small"}>{log}</Text></StackItem>;
+            {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for log output...</Text>}
+            {systemLogs.length > 0 && systemLogs.reverse().map((log, index) => {
+              return (
+                <StackItem key={`log_${index}`}>
+                  <Flex direction={"row"} gap={"1"}>
+                    <Text fontSize={"x-small"} fontWeight={"semibold"}>({dayjs(new Date()).format("HH:MM:ss")}): </Text>
+                    <Text fontSize={"x-small"}>{log}</Text>
+                  </Flex>
+                </StackItem>
+              );
             })}
           </VStack>
         </Flex>
