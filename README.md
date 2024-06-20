@@ -2,6 +2,8 @@
 
 Headsup is a dashboard tool to remotely monitor and interact with VR headsets over LAN while delivering behavioral experiments to participants.
 
+![Headsup client dashboard](screenshot.png)
+
 ## Requirements
 
 1. VR application created using Unity. Both `CaptureManager.cs` and `HeadsupServer.cs` must be added to the Unity project and integrated as described in the [README](unity/README.md).
