@@ -4,7 +4,7 @@ Client dashboard allowing users to connect to a headset on the local network. Ou
 
 ## Usage
 
-1. Install dependencies and open the dashboard at [localhost:5173](http://localhost:5173).
+1. Install dependencies (`yarn`), start the dashboard (`yarn dev`), and open the dashboard at [localhost:5173](http://localhost:5173).
 2. Specify an IP address (or `localhost`) and port number (default port is `4444`). This can be tested prior to connecting by clicking `Test`, and the status of the headset will be updated. Optionally click `Save` to store the connection details locally.
 3. Click `Connect` to connect to the headset and start receiving status information and logs from the headset.
 
