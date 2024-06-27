@@ -46,6 +46,7 @@ const App = () => {
   const [activeBlock, setActiveBlock] = useState("Inactive");
   const [currentTrial, setCurrentTrial] = useState(0);
   const [totalTrials, setTotalTrials] = useState(0);
+  const [fixationRequired, setFixationRequired] = useState(true);
 
   // Device details
   const [deviceName, setDeviceName] = useState("");
@@ -324,6 +325,100 @@ const App = () => {
     }
   };
 
+  /**
+   * End the experiment
+   */
+  const endExperiment = async () => {
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/kill", { timeout: 5000 });
+    if (response.success) {
+      toast({
+        status: "success",
+        title: "Experiment Ended",
+        description: `Ended experiment successfully`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(false);
+    }
+  };
+
+  /**
+   * Enable the fixation requirement remotely
+   */
+  const enableFixation = async () => {
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/enable", { timeout: 5000 });
+    if (response.success) {
+      setFixationRequired(true);
+      toast({
+        status: "success",
+        title: "Enabled Fixation",
+        description: `Requirement for fixation enabled`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(false);
+    }
+  };
+
+  /**
+   * Disable the fixation requirement remotely
+   */
+  const disableFixation = async () => {
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/disable", { timeout: 5000 });
+    if (response.success) {
+      setFixationRequired(false);
+      toast({
+        status: "success",
+        title: "Disabled Fixation",
+        description: `Requirement for fixation disabled`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+    } else {
+      toast({
+        status: "error",
+        title: "Connectivity Error",
+        description: `Could not connect to headset`,
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+      setConnected(false);
+    }
+  };
+
+  /**
+   * Toggle the fixation requirement
+   */
+  const toggleFixation = async () => {
+    if (fixationRequired === true) {
+      await disableFixation();
+    } else {
+      await enableFixation();
+    }
+  };
+
   return (
     <Flex w={"100%"} minH={"100vh"} direction={"column"} gap={"4"} p={"4"}>
       <Flex w={"100%"} align={"center"}>
@@ -508,6 +603,27 @@ const App = () => {
             <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials}</Text>
             <Spacer />
             <Text fontSize={"small"} color={"gray.600"}>{currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete</Text>
+          </Flex>
+          <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
+            <Heading size={"sm"}>Actions</Heading>
+            <Spacer />
+          </Flex>
+          <Flex direction={"row"} gap={"2"}>
+            <Button
+              colorScheme={"blue"}
+              isDisabled={!connected}
+              onClick={toggleFixation}
+            >
+              {fixationRequired ? "Disable " : "Enable "}
+              Fixation
+            </Button>
+            <Button
+              colorScheme={"red"}
+              isDisabled={!connected}
+              onClick={endExperiment}
+            >
+              End Experiment
+            </Button>
           </Flex>
           <Heading size={"sm"}>Logs</Heading>
           <VStack
