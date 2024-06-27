@@ -1,9 +1,8 @@
-import { Button, Flex, FormControl, Heading, Input, Select, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from '@chakra-ui/react'
-import { CheckCircleIcon, InfoIcon, WarningIcon } from '@chakra-ui/icons'
-import { useEffect, useState } from 'react';
-import { request } from './util';
-import dayjs from 'dayjs';
-import _ from 'lodash';
+import { Button, Flex, FormControl, Heading, Input, Select, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
+import { CheckCircleIcon, InfoIcon, WarningIcon } from "@chakra-ui/icons";
+import { useEffect, useState } from "react";
+import { request } from "./util";
+import dayjs from "dayjs";
 
 // Custom types
 type HeadsetState = {

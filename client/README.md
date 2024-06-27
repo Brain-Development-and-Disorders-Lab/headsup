@@ -22,6 +22,8 @@ To capture a screenshot, connect to a headset and click the `Screenshot` button.
 
 Screenshots will displayed in a tab interface, one display to each tab. For a VR application, typically `Display 0` and `Display 1` are the left and right eyes respectively.
 
+`End Experiment` acts as a kill-switch, and can be used to end an experiment gracefully, saving experiment data in the process. `Enable Fixation` or `Disable Fixation` is used to toggle the pre-trial central fixation requirement.
+
 Built using [Vite](https://vitejs.dev/), with help from libraries like [Axios](https://axios-http.com/) and [Chakra UI](https://v2.chakra-ui.com/).
 
 ## License
