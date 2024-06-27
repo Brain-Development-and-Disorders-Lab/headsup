@@ -14,6 +14,9 @@ type HeadsetState = {
   "device_battery": string,
 };
 
+// Timing constants
+const DEFAULT_TIMEOUT = 5000; // Milliseconds
+
 const validAddress = (address: string): boolean => {
   // https://stackoverflow.com/a/27434991
   return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(address) || address === "localhost";
@@ -88,7 +91,7 @@ const App = () => {
    */
   const testConnectivity = async () => {
     setConnectivityLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: 10000 });
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: DEFAULT_TIMEOUT * 2 });
     setConnectivityLoading(false);
     if (response.success) {
       toast({
@@ -247,7 +250,7 @@ const App = () => {
    * Retrieve the status values from the headset
    */
   const refreshStatus = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/status", { timeout: 5000 });
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/status", { timeout: DEFAULT_TIMEOUT });
     if (response.success) {
       setLastStatus(new Date().toLocaleString());
 
@@ -277,7 +280,7 @@ const App = () => {
    * Retrieve log output from the headset
    */
   const updateLogs = async () => {
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: 5000 });
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: DEFAULT_TIMEOUT });
     if (response.success) {
       if (response.data.length > 0) {
         setSystemLogs(systemLogs => [...response.data.reverse(), ...systemLogs] );
@@ -300,7 +303,7 @@ const App = () => {
    */
   const getScreenshot = async () => {
     setScreenshotLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: 5000 });
+    const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: DEFAULT_TIMEOUT });
     setScreenshotLoading(false);
     if (response.success) {
       if (response.data.length > 0 && response.data.filter((s: string) => s !== "").length > 0) {
@@ -328,7 +331,7 @@ const App = () => {
    * End the experiment
    */
   const endExperiment = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/kill", { timeout: 5000 });
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/kill", { timeout: DEFAULT_TIMEOUT });
     if (response.success) {
       toast({
         status: "success",
@@ -355,7 +358,7 @@ const App = () => {
    * Enable the fixation requirement remotely
    */
   const enableFixation = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/enable", { timeout: 5000 });
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/enable", { timeout: DEFAULT_TIMEOUT });
     if (response.success) {
       setFixationRequired(true);
       toast({
@@ -383,7 +386,7 @@ const App = () => {
    * Disable the fixation requirement remotely
    */
   const disableFixation = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/disable", { timeout: 5000 });
+    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/disable", { timeout: DEFAULT_TIMEOUT });
     if (response.success) {
       setFixationRequired(false);
       toast({
