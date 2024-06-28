@@ -17,6 +17,11 @@ type HeadsetState = {
 // Timing constants
 const DEFAULT_TIMEOUT = 5000; // Milliseconds
 
+/**
+ * Utility function to validate if a value IP address has been specified
+ * @param {string} address Specified IP address
+ * @return {boolean}
+ */
 const validAddress = (address: string): boolean => {
   // https://stackoverflow.com/a/27434991
   return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(address) || address === "localhost";
@@ -241,6 +246,7 @@ const App = () => {
     }
     setHeadsetState("disconnected");
     setActiveBlock("Inactive");
+    setFixationRequired(true);
     setCurrentTrial(0);
     setTotalTrials(0);
     setDeviceBattery(0.0);
@@ -559,10 +565,10 @@ const App = () => {
               isLoading={screenshotLoading}
               onClick={getScreenshot}
             >
-              Screenshot
+              Capture
             </Button>
           </Flex>
-          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastScreenshot !== "" ? dayjs(lastScreenshot).format("hh:MM:ss") : "Never"}</Text>
+          <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastScreenshot !== "" ? dayjs(lastScreenshot).format("hh:mm:ss") : "Never"}</Text>
           {screenshotData.filter((s) => s !== "").length > 0 &&
             <Tabs>
               <TabList>
@@ -592,21 +598,6 @@ const App = () => {
         </Flex>
         <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
           <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
-            <Heading size={"sm"}>Status</Heading>
-            <Spacer />
-            <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:MM:ss") : "Never"}</Text>
-          </Flex>
-          <Flex direction={"row"} gap={"1"}>
-            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Active block:</Text>
-            <Text fontSize={"small"} color={"gray.600"}>{activeBlock}</Text>
-          </Flex>
-          <Flex direction={"row"} gap={"1"}>
-            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current trial:</Text>
-            <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials}</Text>
-            <Spacer />
-            <Text fontSize={"small"} color={"gray.600"}>{currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete</Text>
-          </Flex>
-          <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
             <Heading size={"sm"}>Actions</Heading>
             <Spacer />
           </Flex>
@@ -626,6 +617,21 @@ const App = () => {
             >
               End Experiment
             </Button>
+          </Flex>
+          <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
+            <Heading size={"sm"}>Status</Heading>
+            <Spacer />
+            <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:mm:ss") : "Never"}</Text>
+          </Flex>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Active block:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{activeBlock}</Text>
+          </Flex>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current trial:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials}</Text>
+            <Spacer />
+            <Text fontSize={"small"} color={"gray.600"}>{currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete</Text>
           </Flex>
           <Heading size={"sm"}>Logs</Heading>
           <VStack
