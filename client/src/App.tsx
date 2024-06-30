@@ -467,7 +467,7 @@ const App = () => {
             <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Battery:</Text>
             {connected &&
               <Text fontSize={"small"} color={deviceBattery > 0.5 ? "green.600" : "orange.600"}>
-                {`${deviceBattery * 100}%`}
+                {`${Math.round(deviceBattery * 100)}%`}
               </Text>
             }
             {!connected &&
