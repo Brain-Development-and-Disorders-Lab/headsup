@@ -1,4 +1,4 @@
-import { Button, Flex, FormControl, Heading, Input, Select, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
+import { Button, Flex, FormControl, Heading, Input, Progress, Select, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
 import { CheckCircleIcon, InfoIcon, WarningIcon } from "@chakra-ui/icons";
 import { useEffect, useState } from "react";
 import { request } from "./util";
@@ -50,7 +50,7 @@ const App = () => {
   // Status details
   const [statusInterval, setStatusInterval] = useState(-1);
   const [lastStatus, setLastStatus] = useState("");
-  const [activeBlock, setActiveBlock] = useState("Inactive");
+  const [currentBlock, setCurrentBlock] = useState("Inactive");
   const [currentTrial, setCurrentTrial] = useState(0);
   const [totalTrials, setTotalTrials] = useState(0);
   const [fixationRequired, setFixationRequired] = useState(true);
@@ -244,8 +244,9 @@ const App = () => {
         position: "bottom-right",
       });
     }
+    setSystemLogs([]);
     setHeadsetState("disconnected");
-    setActiveBlock("Inactive");
+    setCurrentBlock("Inactive");
     setFixationRequired(true);
     setCurrentTrial(0);
     setTotalTrials(0);
@@ -261,7 +262,7 @@ const App = () => {
       setLastStatus(new Date().toLocaleString());
 
       // Extract status data from response
-      setActiveBlock(response.data.active_block);
+      setCurrentBlock(response.data.active_block);
       setCurrentTrial(parseInt(response.data.current_trial));
       setTotalTrials(parseInt(response.data.total_trials));
 
@@ -514,7 +515,6 @@ const App = () => {
                 Save
               </Button>
             }
-            <Spacer />
             {!connected &&
               <Button
                 isDisabled={invalidInput || connectionLoading || connected}
@@ -552,10 +552,10 @@ const App = () => {
         <Flex w={"60%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"}>
           <Flex align={"center"}>
             <Flex direction={"column"} gap={"1"}>
-              <Heading size={"md"}>Display Screenshots</Heading>
+              <Heading size={"sm"}>Headset Display</Heading>
               <Flex gap={"1"} align={"center"}>
                 <WarningIcon color={"orange.400"} />
-                <Text color={"orange.400"} fontWeight={"semibold"} fontSize={"x-small"}>Screenshots will impact performance</Text>
+                <Text color={"orange.400"} fontWeight={"semibold"} fontSize={"x-small"}>Capturing screenshots will impact performance</Text>
               </Flex>
             </Flex>
             <Spacer />
@@ -592,15 +592,49 @@ const App = () => {
           }
           {screenshotData.length === 0 &&
             <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
-              {headsetState !== "connected" && <Text color={"white"}>Offline</Text>}
+              {headsetState !== "connected" && <Text color={"white"}>Waiting for headset...</Text>}
+              {headsetState === "connected" && <Text color={"white"}>Use the "Capture" button to retrieve screenshots of the headset displays</Text>}
             </Flex>
           }
         </Flex>
         <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
           <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
-            <Heading size={"sm"}>Actions</Heading>
+            <Heading size={"sm"}>Headset Status</Heading>
             <Spacer />
+            <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:mm:ss") : "Never"}</Text>
           </Flex>
+          <Flex direction={"row"} gap={"1"} align={"center"}>
+            <Progress rounded={"md"} w={"100%"} colorScheme={"green"} size={"sm"} value={currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0} />
+          </Flex>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current trial:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials} ({currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete)</Text>
+          </Flex>
+          <Flex direction={"row"} gap={"1"}>
+            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current block:</Text>
+            <Text fontSize={"small"} color={"gray.600"}>{currentBlock}</Text>
+          </Flex>
+          <VStack
+            border={"1px"}
+            borderColor={"gray.200"}
+            rounded={"md"}
+            p={"2"}
+            spacing={"1"}
+            align={"stretch"}
+            h={"100%"}
+            bg={"gray.50"}
+            overflowY={"auto"}
+            flexDirection={"column-reverse"}
+          >
+            {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for headset...</Text>}
+            {systemLogs.length > 0 && systemLogs.map((log, index) => {
+              return (
+                <StackItem key={`log_${index}`}>
+                  <Text fontSize={"x-small"}>{log}</Text>
+                </StackItem>
+              );
+            })}
+          </VStack>
           <Flex direction={"row"} gap={"2"}>
             <Button
               colorScheme={"blue"}
@@ -618,43 +652,6 @@ const App = () => {
               End Experiment
             </Button>
           </Flex>
-          <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
-            <Heading size={"sm"}>Status</Heading>
-            <Spacer />
-            <Text color={"gray.500"} fontSize={"sm"}>Last Updated: {lastStatus !== "" ? dayjs(lastStatus).format("hh:mm:ss") : "Never"}</Text>
-          </Flex>
-          <Flex direction={"row"} gap={"1"}>
-            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Active block:</Text>
-            <Text fontSize={"small"} color={"gray.600"}>{activeBlock}</Text>
-          </Flex>
-          <Flex direction={"row"} gap={"1"}>
-            <Text fontSize={"small"} fontWeight={"semibold"} color={"gray.600"}>Current trial:</Text>
-            <Text fontSize={"small"} color={"gray.600"}>{currentTrial} / {totalTrials}</Text>
-            <Spacer />
-            <Text fontSize={"small"} color={"gray.600"}>{currentTrial > 0 ? Math.round(currentTrial / totalTrials * 100) : 0}% complete</Text>
-          </Flex>
-          <Heading size={"sm"}>Logs</Heading>
-          <VStack
-            border={"1px"}
-            borderColor={"gray.200"}
-            rounded={"md"}
-            p={"2"}
-            spacing={"1"}
-            align={"stretch"}
-            h={"100%"}
-            bg={"gray.50"}
-            overflowY={"auto"}
-            flexDirection={"column-reverse"}
-          >
-            {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for log output...</Text>}
-            {systemLogs.length > 0 && systemLogs.map((log, index) => {
-              return (
-                <StackItem key={`log_${index}`}>
-                  <Text fontSize={"x-small"}>{log}</Text>
-                </StackItem>
-              );
-            })}
-          </VStack>
         </Flex>
       </Flex>
     </Flex>
