@@ -1,8 +1,10 @@
-import { Button, Flex, FormControl, Heading, Input, Progress, Select, Spacer, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
-import { CheckCircleIcon, InfoIcon, WarningIcon } from "@chakra-ui/icons";
+import { Button, Flex, FormControl, Heading, Input, Progress, Select, Spacer, Spinner, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
+import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
 import { useEffect, useState } from "react";
 import { request } from "./util";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 import dayjs from "dayjs";
+import consola from "consola";
 
 // Custom types
 type HeadsetState = {
@@ -12,6 +14,11 @@ type HeadsetState = {
   "device_name": string,
   "device_model": string,
   "device_battery": string,
+};
+
+type HeadsetMessage = {
+  type: "status" | "logs",
+  data: string,
 };
 
 // Timing constants
@@ -31,15 +38,25 @@ const App = () => {
   // Input states
   const [invalidInput, setInvalidInput] = useState(false);
 
+  // Connection details and state
+  const [address, setAddress] = useState("localhost");
+  const [port, setPort] = useState(4444);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // WebSocket state
+  const [socketUrl, setSocketUrl] = useState("ws://" + address + ":" + port.toString());
+  const [, setMessageHistory] = useState<MessageEvent<any>[]>([]);
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
+    shouldReconnect: () => {
+      return true;
+    },
+  });
+
   // Connectivity and status update states
   const [connected, setConnected] = useState(false);
-  const [connectivityLoading, setConnectivityLoading] = useState(false);
-  const [connectionLoading, setConnectionLoading] = useState(false);
 
   // Connectivity details
-  const [address, setAddress] = useState("192.168.0.1");
-  const [port, setPort] = useState(4444);
-  const [headsetState, setHeadsetState] = useState("disconnected" as "disconnected" | "online" | "connected")
+  const [headsetState, setHeadsetState] = useState("connecting" as "connected" | "connecting");
   const [savedConnections, setSavedConnections] = useState([] as { address: string, port: number }[]);
 
   // Screenshot details
@@ -48,7 +65,6 @@ const App = () => {
   const [screenshotData, setScreenshotData] = useState([] as string[]);
 
   // Status details
-  const [statusInterval, setStatusInterval] = useState(-1);
   const [lastStatus, setLastStatus] = useState("");
   const [currentBlock, setCurrentBlock] = useState("Inactive");
   const [currentTrial, setCurrentTrial] = useState(0);
@@ -76,6 +92,14 @@ const App = () => {
     setPort(event.target.value);
   };
 
+  // Store incoming messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      setMessageHistory((prev) => prev.concat(lastMessage));
+      handleMessage(lastMessage.data);
+    }
+  }, [lastMessage]);
+
   // Load the saved connections on page load
   useEffect(() => {
     const storage = localStorage.getItem("headsup");
@@ -84,51 +108,11 @@ const App = () => {
     }
   }, []);
 
-  // Listen for changes in connection state
   useEffect(() => {
-    if (!connected) {
-      stopSync(false);
-    }
-  }, [connected]);
+    if (readyState === ReadyState.OPEN) {
+      setConnected(true);
+      setHeadsetState("connected");
 
-  /**
-   * Utility function to test connectivity and response from headset
-   */
-  const testConnectivity = async () => {
-    setConnectivityLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: DEFAULT_TIMEOUT * 2 });
-    setConnectivityLoading(false);
-    if (response.success) {
-      toast({
-        status: "info",
-        title: "Online",
-        description: `Headset at address "${"http://" + address + ":" + port.toString()}" is online`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setHeadsetState("online");
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setHeadsetState("disconnected");
-    }
-  };
-
-  /**
-   * Function to establish that connectivity to the headset exists, and start the synchronization interval function
-   */
-  const connect = async () => {
-    setConnectionLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/active", { timeout: 5000 });
-    setConnectionLoading(false);
-    if (response.success) {
       toast({
         status: "success",
         title: "Connected",
@@ -137,28 +121,12 @@ const App = () => {
         isClosable: true,
         position: "bottom-right",
       });
-      setHeadsetState("connected");
-      setConnected(true);
-      startSync();
+      consola.success("Connected to headset");
     } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
       setConnected(false);
+      setHeadsetState("connecting");
     }
-  };
-
-  /**
-   * Handles clicking "Disconnect" button
-   */
-  const disconnect = () => {
-    setConnected(false);
-  };
+  }, [readyState]);
 
   /**
    * Handles saving a valid connection
@@ -219,89 +187,26 @@ const App = () => {
   };
 
   /**
-   * Function to create a new interval responsible for refreshing the status and log output
+   * Handle incoming messages from the headset
+   * @param {MessageEvent<any>} message Message from the headset
    */
-  const startSync = () => {
-   setStatusInterval(setInterval(() => {
-      refreshStatus();
-      updateLogs();
-    }, 500));
-  };
-
-  /**
-   * Function to clear interval responsible for synchronizing data between dashboard and headset
-   * @param unexpected Denotes if this function is being called out of error or on user disconnect
-   */
-  const stopSync = (unexpected: boolean) => {
-    clearInterval(statusInterval);
-    if (unexpected) {
-      toast({
-        status: "error",
-        title: "Connection Lost",
-        description: `Lost connection to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-    }
-    setSystemLogs([]);
-    setHeadsetState("disconnected");
-    setCurrentBlock("Inactive");
-    setFixationRequired(true);
-    setCurrentTrial(0);
-    setTotalTrials(0);
-    setDeviceBattery(0.0);
-  };
-
-  /**
-   * Retrieve the status values from the headset
-   */
-  const refreshStatus = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/status", { timeout: DEFAULT_TIMEOUT });
-    if (response.success) {
+  const handleMessage = (raw: string) => {
+    const message = JSON.parse(raw) as HeadsetMessage;
+    if (message.type === "status") {
+      const data = JSON.parse(message.data) as HeadsetState;
       setLastStatus(new Date().toLocaleString());
 
       // Extract status data from response
-      setCurrentBlock(response.data.active_block);
-      setCurrentTrial(parseInt(response.data.current_trial));
-      setTotalTrials(parseInt(response.data.total_trials));
+      setCurrentBlock(data.active_block);
+      setCurrentTrial(parseInt(data.current_trial));
+      setTotalTrials(parseInt(data.total_trials));
 
       // Extract device information from response
-      setDeviceName(response.data.device_name);
-      setDeviceModel(response.data.device_model);
-      setDeviceBattery(parseFloat(response.data.device_battery));
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
-    }
-  };
-
-  /**
-   * Retrieve log output from the headset
-   */
-  const updateLogs = async () => {
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/logs", { timeout: DEFAULT_TIMEOUT });
-    if (response.success) {
-      if (response.data.length > 0) {
-        setSystemLogs(systemLogs => [...response.data.reverse(), ...systemLogs] );
-      }
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
+      setDeviceName(data.device_name);
+      setDeviceModel(data.device_model);
+      setDeviceBattery(parseFloat(data.device_battery));
+    } else if (message.type === "logs") {
+      setSystemLogs(systemLogs => [JSON.parse(message.data), ...systemLogs] );
     }
   };
 
@@ -338,83 +243,23 @@ const App = () => {
    * End the experiment
    */
   const endExperiment = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/kill", { timeout: DEFAULT_TIMEOUT });
-    if (response.success) {
-      toast({
-        status: "success",
-        title: "Experiment Ended",
-        description: `Ended experiment successfully`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
-    }
+    sendMessage("kill");
   };
 
   /**
    * Enable the fixation requirement remotely
    */
   const enableFixation = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/enable", { timeout: DEFAULT_TIMEOUT });
-    if (response.success) {
-      setFixationRequired(true);
-      toast({
-        status: "success",
-        title: "Enabled Fixation",
-        description: `Requirement for fixation enabled`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
-    }
+    sendMessage("enable_fixation");
+    setFixationRequired(true);
   };
 
   /**
    * Disable the fixation requirement remotely
    */
   const disableFixation = async () => {
-    const response = await request<HeadsetState>("http://" + address + ":" + port.toString() + "/fixation/disable", { timeout: DEFAULT_TIMEOUT });
-    if (response.success) {
-      setFixationRequired(false);
-      toast({
-        status: "success",
-        title: "Disabled Fixation",
-        description: `Requirement for fixation disabled`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
-    }
+    sendMessage("disable_fixation");
+    setFixationRequired(false);
   };
 
   /**
@@ -426,6 +271,14 @@ const App = () => {
     } else {
       await enableFixation();
     }
+  };
+
+  /**
+   * Handle clicking the "Edit" button
+   */
+  const onEditClick = () => {
+    setIsEditing(!isEditing);
+    setSocketUrl("ws://" + address + ":" + port.toString());
   };
 
   return (
@@ -440,16 +293,10 @@ const App = () => {
               <Text fontSize={"small"} color={"green.600"}>Headset connected</Text>
             </Flex>
           }
-          {headsetState === "online" &&
+          {headsetState === "connecting" &&
             <Flex direction={"row"} align={"center"} gap={"1"}>
-              <InfoIcon color={"green.600"} />
-              <Text fontSize={"small"} color={"green.600"}>Headset online</Text>
-            </Flex>
-          }
-          {headsetState === "disconnected" &&
-            <Flex direction={"row"} align={"center"} gap={"1"}>
-              <WarningIcon color={"red"} />
-              <Text fontSize={"small"} color={"red.600"}>Headset offline</Text>
+              <Spinner size={"sm"} color={"orange.600"} />
+              <Text fontSize={"small"} color={"orange.600"}>Headset connecting</Text>
             </Flex>
           }
           <Flex direction={"row"} gap={"1"}>
@@ -480,71 +327,46 @@ const App = () => {
         </Flex>
       </Flex>
       <Flex w={"100%"} direction={"row"} gap={"2"}>
-        {!connected &&
-          <Flex maxW={"20%"}>
-            <Select
-              placeholder={"Saved connections"}
-              isDisabled={savedConnections.length === 0 || connected || connectivityLoading || connectionLoading}
-              onChange={(event) => {
-                const selected = event.target.selectedIndex;
-                if (selected > 0 && selected <= savedConnections.length) {
-                  const selectedConnection = savedConnections[selected - 1];
-                  setAddress(selectedConnection.address);
-                  setPort(selectedConnection.port);
-                }
-              }}
-            >
-              {savedConnections.map((connection) => {
-                return <option key={`${connection.address}:${connection.port}`}>http://{connection.address}:{connection.port}</option>
-              })}
-            </Select>
-          </Flex>
-        }
+        <Flex maxW={"20%"}>
+          <Select
+            placeholder={"Saved connections"}
+            value={"Saved connections"}
+            isDisabled={savedConnections.length === 0 || !isEditing}
+            onChange={(event) => {
+              const selected = event.target.selectedIndex;
+              if (selected > 0 && selected <= savedConnections.length) {
+                const selectedConnection = savedConnections[selected - 1];
+                setAddress(selectedConnection.address);
+                setPort(selectedConnection.port);
+              }
+            }}
+          >
+            {savedConnections.map((connection) => {
+              return <option key={`${connection.address}:${connection.port}`}>http://{connection.address}:{connection.port}</option>
+            })}
+          </Select>
+        </Flex>
         <FormControl isInvalid={invalidInput}>
           <Flex gap={"2"}>
             <Flex maxW={"60%"} gap={"2"}>
-              <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} isDisabled={connectionLoading || connectivityLoading || connected} />
-              <Input w={"20%"} type={"number"} placeholder={"Port"} value={port} onChange={updatePort} isDisabled={connectionLoading || connectivityLoading || connected} />
+              <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} isDisabled={!isEditing} />
+              <Input w={"20%"} type={"number"} placeholder={"Port"} value={port} onChange={updatePort} isDisabled={!isEditing} />
             </Flex>
-            {!connected &&
-              <Button
-                colorScheme={"blue"}
-                isDisabled={invalidInput || connectivityLoading || connectionLoading}
-                onClick={saveConnection}
-              >
-                Save
-              </Button>
-            }
-            {!connected &&
-              <Button
-                isDisabled={invalidInput || connectionLoading || connected}
-                isLoading={connectivityLoading}
-                loadingText={"Testing..."}
-                onClick={testConnectivity}
-              >
-                Test
-              </Button>
-            }
-            {!connected &&
-              <Button
-                colorScheme={"green"}
-                isDisabled={invalidInput || connected}
-                isLoading={connectionLoading}
-                loadingText={"Connecting..."}
-                onClick={connect}
-              >
-                Connect
-              </Button>
-            }
-            {connected &&
-              <Button
-                colorScheme={"red"}
-                loadingText={"Disconnecting..."}
-                onClick={disconnect}
-              >
-                Disconnect
-              </Button>
-            }
+            <Button
+              size={"sm"}
+              colorScheme={isEditing ? "green" : "gray"}
+              onClick={onEditClick}
+            >
+              {isEditing ? "Done" : "Edit"}
+            </Button>
+            <Button
+              size={"sm"}
+              colorScheme={"blue"}
+              isDisabled={invalidInput}
+              onClick={saveConnection}
+            >
+              Save Details
+            </Button>
           </Flex>
         </FormControl>
       </Flex>
@@ -560,6 +382,7 @@ const App = () => {
             </Flex>
             <Spacer />
             <Button
+              size={"sm"}
               colorScheme={"blue"}
               isDisabled={!connected}
               isLoading={screenshotLoading}
@@ -626,7 +449,7 @@ const App = () => {
             overflowY={"auto"}
             flexDirection={"column-reverse"}
           >
-            {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for headset...</Text>}
+            {systemLogs.length === 0 && <Text fontSize={"x-small"} fontWeight={"semibold"} color={"gray.600"}>Waiting for log output...</Text>}
             {systemLogs.length > 0 && systemLogs.map((log, index) => {
               return (
                 <StackItem key={`log_${index}`}>
@@ -637,6 +460,7 @@ const App = () => {
           </VStack>
           <Flex direction={"row"} gap={"2"}>
             <Button
+              size={"sm"}
               colorScheme={"blue"}
               isDisabled={!connected}
               onClick={toggleFixation}
@@ -645,6 +469,7 @@ const App = () => {
               Fixation
             </Button>
             <Button
+              size={"sm"}
               colorScheme={"red"}
               isDisabled={!connected}
               onClick={endExperiment}

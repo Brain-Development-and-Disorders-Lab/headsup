@@ -1821,6 +1821,11 @@ concat-map@0.0.1:
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
   integrity sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==
 
+consola@^3.4.0:
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/consola/-/consola-3.4.0.tgz#4cfc9348fd85ed16a17940b3032765e31061ab88"
+  integrity sha512-EiPU8G6dQG0GFHNR8ljnZFki/8a+cQwEQ+7wpxdChl02Q8HXlwEZWD5lqAF8vC2sEC3Tehr8hy7vErz88LHyUA==
+
 convert-source-map@^1.5.0:
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/convert-source-map/-/convert-source-map-1.9.0.tgz#7faae62353fb4213366d0ca98358d22e8368b05f"
@@ -2711,6 +2716,11 @@ react-style-singleton@^2.2.1:
     get-nonce "^1.0.0"
     invariant "^2.2.4"
     tslib "^2.0.0"
+
+react-use-websocket@^4.12.0:
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/react-use-websocket/-/react-use-websocket-4.12.0.tgz#2bee0fcc09dbde13ac587205c717d5f9fcf1fed5"
+  integrity sha512-aPsZiIkGdULzG+CNqh2wFQpIdWiaKStRBofBUc0j/TURV3CrOw5YuJMHHre+CyB1LUoJeQbUnz7Bj05J68+xng==
 
 react@^18.2.0:
   version "18.3.1"
