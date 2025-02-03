@@ -1,6 +1,6 @@
 import { Button, Flex, FormControl, Heading, Input, Link, Progress, Select, Spacer, Spinner, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
 import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import dayjs from "dayjs";
 import consola from "consola";
@@ -80,7 +80,7 @@ const App = () => {
   const toast = useToast();
 
   // Update states and do input validation
-  const updateAddress = (event: any) => {
+  const updateAddress = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInvalidInput(!validAddress(event.target.value));
     setAddress(event.target.value);
 
@@ -90,9 +90,9 @@ const App = () => {
       setScrcpyCommand(`scrcpy --video-codec=h265 -m1920 --max-fps=60 --no-audio -K`);
     }
   };
-  const updatePort = (event: any) => {
-    setInvalidInput(isNaN(event.target.value) || event.target.value > 9999 || event.target.value < 0);
-    setPort(event.target.value);
+  const updatePort = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInvalidInput(isNaN(parseInt(event.target.value)) || parseInt(event.target.value) > 9999 || parseInt(event.target.value) < 0);
+    setPort(parseInt(event.target.value));
   };
 
   // Store incoming messages
@@ -194,33 +194,37 @@ const App = () => {
    * @param {MessageEvent<any>} message Message from the headset
    */
   const handleMessage = (raw: string) => {
-    const message = JSON.parse(raw) as HeadsetMessage;
-    if (message.type === "status") {
-      const data = JSON.parse(message.data) as HeadsetState;
-      setLastStatus(new Date().toLocaleString());
+    try {
+      const message = JSON.parse(raw) as HeadsetMessage;
+      if (message.type === "status") {
+        const data = JSON.parse(message.data) as HeadsetState;
+        setLastStatus(new Date().toLocaleString());
 
-      // Extract status data from response
-      setCurrentBlock(data.active_block);
-      setCurrentTrial(parseInt(data.current_trial));
-      setTotalTrials(parseInt(data.total_trials));
+        // Extract status data from response
+        setCurrentBlock(data.active_block);
+        setCurrentTrial(parseInt(data.current_trial));
+        setTotalTrials(parseInt(data.total_trials));
 
-      // Extract device information from response
-      setDeviceName(data.device_name);
-      setDeviceModel(data.device_model);
-      setDeviceBattery(parseFloat(data.device_battery));
-    } else if (message.type === "logs") {
-      setSystemLogs(systemLogs => [JSON.parse(message.data), ...systemLogs] );
-    } else if (message.type === "screenshot") {
-      const data = JSON.parse(message.data) as string[];
-      if (data.length > 0 && data.filter((s: string) => s !== "").length > 0) {
-        const screenshots = [];
-        for (const encoded of data) {
-          screenshots.push(`data:image/jpeg;base64,${encoded}`);
+        // Extract device information from response
+        setDeviceName(data.device_name);
+        setDeviceModel(data.device_model);
+        setDeviceBattery(parseFloat(data.device_battery));
+      } else if (message.type === "logs") {
+        setSystemLogs(systemLogs => [JSON.parse(message.data), ...systemLogs] );
+      } else if (message.type === "screenshot") {
+        const data = JSON.parse(message.data) as string[];
+        if (data.length > 0 && data.filter((s: string) => s !== "").length > 0) {
+          const screenshots = [];
+          for (const encoded of data) {
+            screenshots.push(`data:image/jpeg;base64,${encoded}`);
+          }
+          setScreenshotData(screenshots);
+          setLastScreenshot(new Date().toLocaleString());
         }
-        setScreenshotData(screenshots);
-        setLastScreenshot(new Date().toLocaleString());
+        setScreenshotLoading(false);
       }
-      setScreenshotLoading(false);
+    } catch (error) {
+      consola.error("Failed to parse message:", error);
     }
   };
 
@@ -269,10 +273,10 @@ const App = () => {
   /**
    * Handle clicking the "Edit" button
    */
-  const onEditClick = () => {
+  const onEditClick = useCallback(() => {
     setIsEditing(!isEditing);
     setSocketUrl("ws://" + address + ":" + port.toString());
-  };
+  }, [isEditing, address, port]);
 
   return (
     <Flex w={"100%"} minH={"100vh"} direction={"column"} gap={"4"} p={"4"}>
