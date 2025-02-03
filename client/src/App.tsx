@@ -1,7 +1,6 @@
-import { Button, Flex, FormControl, Heading, Input, Progress, Select, Spacer, Spinner, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
+import { Button, Flex, FormControl, Heading, Input, Link, Progress, Select, Spacer, Spinner, StackItem, Tab, TabList, TabPanel, TabPanels, Tabs, Text, VStack, useToast } from "@chakra-ui/react";
 import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
 import { useEffect, useState } from "react";
-import { request } from "./util";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import dayjs from "dayjs";
 import consola from "consola";
@@ -21,9 +20,6 @@ type HeadsetMessage = {
   data: string,
 };
 
-// Timing constants
-const DEFAULT_TIMEOUT = 5000; // Milliseconds
-
 /**
  * Utility function to validate if a value IP address has been specified
  * @param {string} address Specified IP address
@@ -41,6 +37,7 @@ const App = () => {
   // Connection details and state
   const [address, setAddress] = useState("localhost");
   const [port, setPort] = useState(4444);
+  const [scrcpyCommand, setScrcpyCommand] = useState(`scrcpy --video-codec=h265 -m1920 --max-fps=60 --no-audio -K`);
   const [isEditing, setIsEditing] = useState(false);
 
   // WebSocket state
@@ -86,6 +83,12 @@ const App = () => {
   const updateAddress = (event: any) => {
     setInvalidInput(!validAddress(event.target.value));
     setAddress(event.target.value);
+
+    if (event.target.value !== "localhost") {
+      setScrcpyCommand(`scrcpy --video-codec=h265 -m1920 --max-fps=60 --no-audio -K --tcpip=${event.target.value}`);
+    } else {
+      setScrcpyCommand(`scrcpy --video-codec=h265 -m1920 --max-fps=60 --no-audio -K`);
+    }
   };
   const updatePort = (event: any) => {
     setInvalidInput(isNaN(event.target.value) || event.target.value > 9999 || event.target.value < 0);
@@ -207,6 +210,17 @@ const App = () => {
       setDeviceBattery(parseFloat(data.device_battery));
     } else if (message.type === "logs") {
       setSystemLogs(systemLogs => [JSON.parse(message.data), ...systemLogs] );
+    } else if (message.type === "screenshot") {
+      const data = JSON.parse(message.data) as string[];
+      if (data.length > 0 && data.filter((s: string) => s !== "").length > 0) {
+        const screenshots = [];
+        for (const encoded of data) {
+          screenshots.push(`data:image/jpeg;base64,${encoded}`);
+        }
+        setScreenshotData(screenshots);
+        setLastScreenshot(new Date().toLocaleString());
+      }
+      setScreenshotLoading(false);
     }
   };
 
@@ -215,28 +229,7 @@ const App = () => {
    */
   const getScreenshot = async () => {
     setScreenshotLoading(true);
-    const response = await request<any>("http://" + address + ":" + port.toString() + "/screen", { timeout: DEFAULT_TIMEOUT });
-    setScreenshotLoading(false);
-    if (response.success) {
-      if (response.data.length > 0 && response.data.filter((s: string) => s !== "").length > 0) {
-        const screenshots = [];
-        for (let encoded of response.data) {
-          screenshots.push(`data:image/jpeg;base64,${encoded}`);
-        }
-        setScreenshotData(screenshots);
-        setLastScreenshot(new Date().toLocaleString());
-      }
-    } else {
-      toast({
-        status: "error",
-        title: "Connectivity Error",
-        description: `Could not connect to headset"`,
-        duration: 2000,
-        isClosable: true,
-        position: "bottom-right",
-      });
-      setConnected(false);
-    }
+    sendMessage("screenshot");
   };
 
   /**
@@ -284,7 +277,10 @@ const App = () => {
   return (
     <Flex w={"100%"} minH={"100vh"} direction={"column"} gap={"4"} p={"4"}>
       <Flex w={"100%"} align={"center"}>
-        <Heading>Headsup</Heading>
+        <Flex direction={"column"} gap={"2"}>
+          <Heading>Headsup</Heading>
+          <Text fontSize={"sm"} color={"gray.400"} fontWeight={"semibold"}>Monitor and manage VR experiments from the browser</Text>
+        </Flex>
         <Spacer />
         <Flex direction={"column"} minW={"12%"} p={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"}>
           {headsetState === "connected" &&
@@ -332,6 +328,8 @@ const App = () => {
             placeholder={"Saved connections"}
             value={"Saved connections"}
             isDisabled={savedConnections.length === 0 || !isEditing}
+            size={"sm"}
+            rounded={"md"}
             onChange={(event) => {
               const selected = event.target.selectedIndex;
               if (selected > 0 && selected <= savedConnections.length) {
@@ -349,8 +347,8 @@ const App = () => {
         <FormControl isInvalid={invalidInput}>
           <Flex gap={"2"}>
             <Flex maxW={"60%"} gap={"2"}>
-              <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} isDisabled={!isEditing} />
-              <Input w={"20%"} type={"number"} placeholder={"Port"} value={port} onChange={updatePort} isDisabled={!isEditing} />
+              <Input placeholder={"Headset Local IP Address"} value={address} onChange={updateAddress} size={"sm"} rounded={"md"} isDisabled={!isEditing} />
+              <Input w={"20%"} type={"number"} placeholder={"Port"} value={port} onChange={updatePort} size={"sm"} rounded={"md"} isDisabled={!isEditing} />
             </Flex>
             <Button
               size={"sm"}
@@ -415,10 +413,40 @@ const App = () => {
           }
           {screenshotData.length === 0 &&
             <Flex h={"400px"} w={"100%"} bg={"black"} align={"center"} justify={"center"}>
-              {headsetState !== "connected" && <Text color={"white"}>Waiting for headset...</Text>}
-              {headsetState === "connected" && <Text color={"white"}>Use the "Capture" button to retrieve screenshots of the headset displays</Text>}
+              {headsetState !== "connected" && <Text color={"white"} fontWeight={"semibold"}>Waiting for headset...</Text>}
+              {headsetState === "connected" && <Text color={"white"} fontWeight={"semibold"}>Use the "Capture" button to retrieve screenshots of the headset displays</Text>}
             </Flex>
           }
+          {/* Provide command to stream live video using `scrcpy` tool */}
+          <Flex direction={"row"} gap={"2"} align={"center"}>
+            <Text fontSize={"xs"} color={"gray.600"} fontWeight={"semibold"}><Link href={"https://github.com/Genymobile/scrcpy"}>scrcpy</Link>:</Text>
+            <Flex w={"100%"} gap={"2"}>
+              <Input
+                type={"text"}
+                readOnly
+                value={scrcpyCommand}
+                size={"sm"}
+                rounded={"md"}
+              />
+              <Button
+                size={"sm"}
+                colorScheme={"blue"}
+                onClick={() => {
+                  navigator.clipboard.writeText(scrcpyCommand);
+                  toast({
+                    title: "Copied",
+                    description: "`scrcpy` command copied to clipboard",
+                    status: "success",
+                    duration: 2000,
+                    isClosable: true,
+                    position: "bottom-right",
+                  });
+                }}
+              >
+                Copy
+              </Button>
+            </Flex>
+          </Flex>
         </Flex>
         <Flex w={"40%"} direction={"column"} gap={"2"} border={"1px"} borderColor={"gray.200"} rounded={"md"} p={"2"} maxH={"70vh"}>
           <Flex w={"100%"} direction={"row"} gap={"2"} align={"center"} justify={"center"}>
