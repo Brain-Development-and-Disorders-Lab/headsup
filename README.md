@@ -1,6 +1,6 @@
 # Headsup
 
-Headsup is a dashboard tool to remotely monitor and interact with VR headsets over LAN while delivering behavioral experiments to participants.
+Headsup is a control panel to remotely monitor and interact with VR headsets over LAN while delivering behavioral experiments to participants.
 
 ![Headsup client dashboard](screenshot.png)
 
