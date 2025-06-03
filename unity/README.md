@@ -1,23 +1,60 @@
-# Headsup - Unity
+# Headsup Unity Components
 
-> [!IMPORTANT]
-> Headsup has been tested only with Unity 2022.3 and a Meta Quest Pro headset.
+## Server Component
 
-`HeadsupServer.cs` acts as a server on the headset, listening for requests from the client dashboard (default address is `localhost:4444`). The server supports multiple paths:
+`HeadsupServer.cs` implements a WebSocket server on the headset for real-time communication with the client control panel (default address: `localhost:4444`). The server handles the following message types:
 
-* `/active`: Returns `true` if the headset is active and the Unity application is running
-* `/status`: Returns a JSON object containing information about task progress and device battery.
-* `/logs`: Returns a list of strings with the most recent logger output.
-* `/screen`: Returns a list of strings, one for each active display, encoding a screenshot using base64 to be turned into a JPG by the client dashboard.
+* `status`: Sends a JSON object containing:
+  - Device information (name, model, battery level)
+  - Experiment progress (current block, trial number, total trials)
+  - Fixation state
+* `logs`: Streams Unity console output to the client
+* `screenshot`: Captures and sends the current camera view
+* `enable_fixation`/`disable_fixation`: Toggles the fixation point
+* `kill`: Safely terminates the experiment
 
-`HeadsupServer.cs` should be attached to another `GameObject` in the scene and the `Prefix` value can be updated if required.
+`HeadsupServer.cs` should be attached to a GameObject in the scene. The server automatically manages WebSocket connections and message handling.
 
-`CaptureManager.cs` is a utility class to manage capturing screenshots and saving the generated images. It exposes the following public methods:
+## Screenshot Component
 
-* `CaptureScreenshot`: Trigger a screenshot to be captured.
-* `GetLastScreenshot`: After capturing a screenshot, returns a `byte[]` array containing the data from the most recent screenshot.
+`CaptureManager.cs` provides screenshot functionality for the VR headset. It should be attached to the main camera in the scene. The component features:
 
-`CaptureManager.cs` should be attached to every `Camera` instance to capture from. Each `CaptureManager.cs` instance added as a `Capture Source` under the `HeadsupServer.cs`.
+* Configurable capture settings:
+  - Resolution (default: 1280x720)
+  - Image format (JPG/PNG)
+  - Optional file saving
+  - Background color control
+
+* Public methods:
+  - `CaptureScreenshot()`: Triggers a screenshot capture
+  - `GetLastScreenshot()`: Returns the most recent screenshot as a byte array
+
+* Performance optimizations:
+  - Reuses render textures for multiple captures
+  - Optional cleanup after capture
+  - Configurable object hiding during capture
+
+## Setup Instructions
+
+1. Add `HeadsupServer.cs` to a GameObject in your scene
+2. Attach `CaptureManager.cs` to your main camera
+3. Configure the capture settings in the Unity Inspector:
+   - Set desired resolution
+   - Choose image format
+   - Configure save settings if needed
+   - Set background color
+
+## Notes
+
+* Tested on a Meta Quest Pro headset
+* Screenshots are captured at the configured resolution and maintain aspect ratio
+* Screenshot capture may cause a brief performance impact
+
+## Dependencies
+
+* Unity 2020.3 or higher
+* WebSocket implementation for Unity
+* Camera component for screenshot capture
 
 ## License
 

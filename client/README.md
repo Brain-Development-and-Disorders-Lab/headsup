@@ -1,30 +1,93 @@
-# Headsup - Client
+# Headsup Client
 
-Client dashboard allowing users to connect to a headset on the local network. Outputs information about the headset status, connectivity status, and provides ability to retrieve screenshots of the current headset display.
+A Python-based control panel for managing and monitoring VR experiments in Unity. This application provides a user-friendly interface for connecting to the VR headset, capturing screenshots, and monitoring experiment progress.
+
+## Features
+
+- **Connection Management**
+  - Connect to VR headset via WebSocket
+  - Real-time connection status monitoring
+  - Configurable IP address and port
+
+- **Device Status**
+  - Display device name and model
+  - Monitor battery level
+  - Track experiment progress
+  - View current block and trial information
+
+- **Experiment Control**
+  - Toggle fixation point
+  - End experiment safely
+  - Capture screenshots from the headset
+
+- **System Monitoring**
+  - Real-time system logs with color-coded messages
+  - Dark theme console for better readability
+  - Timestamped log entries
+
+## Requirements
+
+- Python 3.7 or higher
+- Required Python packages:
+
+  ```txt
+  tkinter
+  websockets
+  pillow
+  ```
+
+## Installation
+
+1. Ensure Python 3.7+ is installed on your system
+2. Install required packages:
+
+   ```bash
+   pip3 install websockets pillow
+   ```
+
+   Note: `tkinter` is typically included with Python installation
 
 ## Usage
 
-1. Install dependencies (`yarn`), start the dashboard (`yarn dev`), and open the dashboard at [localhost:5173](http://localhost:5173).
-2. Specify an IP address (or `localhost`) and port number (default port is `4444`). This can be tested prior to connecting by clicking `Test`, and the status of the headset will be updated. Optionally click `Save` to store the connection details locally.
-3. Click `Connect` to connect to the headset and start receiving status information and logs from the headset.
+1. Start the application:
 
-Click `Disconnect` at any time to disconnect from the headset.
+   ```bash
+   python3 main.py
+   ```
 
-### Screenshots
+2. Connection:
+   - Default connection settings: `localhost:4444`
+   - Click "Connect" to establish connection with the headset
+   - Status indicator shows connection state
 
-> [!CAUTION]
-> Screenshots have a significant performance impact on the client VR application, resulting in a brief (> 1 second) pause and break in headset tracking.
+3. Controls:
+   - **Capture Screenshot**: Takes a screenshot from the headset view
+   - **Toggle Fixation**: Enable/disable the fixation point
+   - **End Experiment**: Safely terminate the current experiment
 
-To capture a screenshot, connect to a headset and click the `Screenshot` button. One screenshot will be returned for each specified capture source in Unity via `CaptureManager.cs`.
+4. Monitoring:
+   - Device status panel shows real-time information
+   - System logs display connection and experiment events
+   - Screenshot preview shows current headset view
 
-> [!WARNING]
-> Screenshot functionality is not completely stable. The `Screenshot` button may need to pressed multiple times prior to receiving an updated screenshot.
+## Window Layout
 
-Screenshots will displayed in a tab interface, one display to each tab. For a VR application, typically `Display 0` and `Display 1` are the left and right eyes respectively.
+- **Connection Panel**: Top section for connection management
+- **Status Panel**: Left side showing device and experiment status
+- **Screenshot Panel**: Right side displaying headset view (16:9 aspect ratio)
+- **Log Panel**: Bottom section with system logs
 
-`End Experiment` acts as a kill-switch, and can be used to end an experiment gracefully, saving experiment data in the process. `Enable Fixation` or `Disable Fixation` is used to toggle the pre-trial central fixation requirement.
+## Troubleshooting
 
-Built using [Vite](https://vitejs.dev/), with help from libraries like [Axios](https://axios-http.com/) and [Chakra UI](https://v2.chakra-ui.com/).
+- **Connection Issues**:
+  - Verify headset is running and accessible
+  - Check IP address and port settings
+  - Ensure no firewall is blocking the connection
+
+- **Screenshot Issues**:
+  - Verify headset is connected
+  - Check if the experiment is running
+  - Ensure sufficient memory is available
 
 ## License
 
