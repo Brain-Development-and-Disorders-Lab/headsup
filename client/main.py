@@ -12,37 +12,48 @@ from PIL import Image, ImageTk
 import io
 import re
 import time
+import os
 
 class HeadsupGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Headsup Control Panel")
-        self.root.geometry("800x600")
-        self.root.resizable(False, False)  # Disable window resizing
+        self.root.title("Headsup: Control Panel")
+        self.root.geometry("600x600")
+        self.root.resizable(False, False)
+
+        # Set window icon
+        icon_path = os.path.join(os.path.dirname(__file__), "Headsup_Icon.png")
+        if os.path.exists(icon_path):
+            icon_image = Image.open(icon_path)
+            icon_photo = ImageTk.PhotoImage(icon_image)
+            self.root.iconphoto(True, icon_photo)
+            self.root.icon_image = icon_photo  # Keep a reference to prevent garbage collection
+        else:
+            print(f"Warning: Icon file not found at {icon_path}")
 
         # Configure style
         self.style = ttk.Style()
-        self.style.theme_use('clam')  # Use clam theme as base
+        self.style.theme_use('clam')
 
         # Configure colors for light theme
-        self.bg_color = '#f5f5f5'  # Light gray background
-        self.fg_color = '#333333'  # Dark gray text
-        self.accent_color = '#007acc'  # Blue accent
-        self.success_color = '#28a745'  # Green
-        self.warning_color = '#ffc107'  # Yellow
-        self.error_color = '#dc3545'  # Red
-        self.disabled_color = '#cccccc'  # Light gray for disabled elements
+        self.bg_color = '#f5f5f5'
+        self.fg_color = '#333333'
+        self.accent_color = '#007acc'
+        self.success_color = '#28a745'
+        self.warning_color = '#ffc107'
+        self.error_color = '#dc3545'
+        self.disabled_color = '#cccccc'
 
         # Configure styles
         self.style.configure('TFrame', background=self.bg_color)
-        self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color)
+        self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color, font=('Helvetica', 10))
         self.style.configure('TButton',
                            background=self.accent_color,
                            foreground='white',
                            padding=5)
         self.style.map('TButton',
                       background=[('disabled', self.disabled_color),
-                                ('active', '#005fa3')],  # Darker blue for hover
+                                ('active', '#005fa3')],
                       foreground=[('disabled', '#666666')])
         self.style.configure('TLabelframe',
                            background=self.bg_color,
@@ -56,9 +67,10 @@ class HeadsupGUI:
                            foreground=self.fg_color)
         self.style.configure('Subheader.TLabel',
                            font=('Helvetica', 12),
-                           foreground='#666666')  # Medium gray for subheader
+                           foreground='#666666')
         self.style.configure('Status.TLabel',
                            font=('Helvetica', 10, 'bold'))
+        self.style.configure('Bold.TLabel', background=self.bg_color, foreground=self.fg_color, font=('Helvetica', 10, 'bold'))
 
         # Configure the root window
         self.root.configure(bg=self.bg_color)
@@ -70,8 +82,8 @@ class HeadsupGUI:
         self.connection_error = False
         self.message_queue = queue.Queue()
         self.ws_thread = None
-        self.should_connect = False  # Flag to control connection attempts
-        self.loop = None  # Store the event loop
+        self.should_connect = False
+        self.loop = None
 
         # Headset state
         self.device_name = "Offline"
@@ -91,16 +103,9 @@ class HeadsupGUI:
         main_frame = ttk.Frame(self.root, padding="12")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        # Header with reduced padding
-        header_frame = ttk.Frame(main_frame)
-        header_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 12))
-
-        ttk.Label(header_frame, text="Headsup", style='Header.TLabel').grid(row=0, column=0)
-        ttk.Label(header_frame, text="VR Experiment Control Panel", style='Subheader.TLabel').grid(row=1, column=0)
-
         # Connection frame with reduced padding
         conn_frame = ttk.LabelFrame(main_frame, text="Connection Status", padding="10")
-        conn_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 12))
+        conn_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 12))
 
         # Status indicator frame with reduced padding
         status_indicator_frame = ttk.Frame(conn_frame)
@@ -137,49 +142,61 @@ class HeadsupGUI:
 
         # Status and Screenshot container
         content_frame = ttk.Frame(main_frame)
-        content_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        content_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         content_frame.columnconfigure(1, weight=1)
         content_frame.rowconfigure(0, weight=1)
 
         # Status frame with reduced padding
-        status_frame = ttk.LabelFrame(content_frame, text="Device Status", padding="10")
+        status_frame = ttk.LabelFrame(content_frame, text="Device Status", padding="12")
         status_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 8))
 
-        # Device info with reduced padding
+        # Device info with increased padding
         info_frame = ttk.Frame(status_frame)
-        info_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 12))
+        info_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 16))
+        info_frame.columnconfigure(1, weight=1)  # Make value column expand
 
-        self.device_name_label = ttk.Label(info_frame, text="Name: Offline")
-        self.device_name_label.grid(row=0, column=0, sticky=tk.W, pady=1)
+        # Name label and value
+        name_label = ttk.Label(info_frame, text="Name:", style='Bold.TLabel')
+        name_label.grid(row=0, column=0, sticky=tk.W, pady=4, padx=(0, 8))
+        self.device_name_label = ttk.Label(info_frame, text="Offline")
+        self.device_name_label.grid(row=0, column=1, sticky=tk.W, pady=4)
 
-        self.device_model_label = ttk.Label(info_frame, text="Model: Offline")
-        self.device_model_label.grid(row=1, column=0, sticky=tk.W, pady=1)
+        # Model label and value
+        model_label = ttk.Label(info_frame, text="Model:", style='Bold.TLabel')
+        model_label.grid(row=1, column=0, sticky=tk.W, pady=4, padx=(0, 8))
+        self.device_model_label = ttk.Label(info_frame, text="Offline")
+        self.device_model_label.grid(row=1, column=1, sticky=tk.W, pady=4)
 
-        self.device_battery_label = ttk.Label(info_frame, text="Battery: Offline")
-        self.device_battery_label.grid(row=2, column=0, sticky=tk.W, pady=1)
+        # Battery label and value
+        battery_label = ttk.Label(info_frame, text="Battery:", style='Bold.TLabel')
+        battery_label.grid(row=2, column=0, sticky=tk.W, pady=4, padx=(0, 8))
+        self.device_battery_label = ttk.Label(info_frame, text="Offline")
+        self.device_battery_label.grid(row=2, column=1, sticky=tk.W, pady=4)
 
-        # Experiment progress with reduced padding
-        ttk.Label(status_frame, text="Experiment Progress").grid(row=1, column=0, sticky=tk.W, pady=(8, 4))
+        # Experiment progress with increased padding
+        ttk.Label(status_frame, text="Experiment Progress", style='Bold.TLabel').grid(row=1, column=0, sticky=tk.W, pady=(8, 8))
         self.progress_bar = ttk.Progressbar(status_frame, length=200, mode='determinate', style='TProgressbar')
-        self.progress_bar.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 4))
+        self.progress_bar.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 8))
 
         self.trial_label = ttk.Label(status_frame, text="Trial: 0 / 0 (0%)")
-        self.trial_label.grid(row=3, column=0, sticky=tk.W, pady=(0, 4))
+        self.trial_label.grid(row=3, column=0, sticky=tk.W, pady=(0, 8))
 
         self.block_label = ttk.Label(status_frame, text="Block: Inactive")
-        self.block_label.grid(row=4, column=0, sticky=tk.W, pady=(0, 12))
+        self.block_label.grid(row=4, column=0, sticky=tk.W, pady=(0, 16))
 
-        # Control buttons with reduced padding
+        # Control buttons with increased padding
         control_frame = ttk.Frame(status_frame)
-        control_frame.grid(row=5, column=0, sticky=(tk.W, tk.E))
+        control_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 8))
+        control_frame.columnconfigure(0, weight=1)
+        control_frame.columnconfigure(1, weight=1)
 
         self.fixation_btn = ttk.Button(control_frame, text="Disable Fixation",
                                      command=self.toggle_fixation, state=tk.DISABLED)
-        self.fixation_btn.grid(row=0, column=0, padx=2)
+        self.fixation_btn.grid(row=0, column=0, padx=4, sticky=tk.E)
 
         self.end_btn = ttk.Button(control_frame, text="End Experiment",
                                 command=self.end_experiment, state=tk.DISABLED)
-        self.end_btn.grid(row=0, column=1, padx=2)
+        self.end_btn.grid(row=0, column=1, padx=4, sticky=tk.W)
 
         # Screenshot frame with modern styling
         screenshot_frame = ttk.LabelFrame(content_frame, text="Headset Display", padding="8")
@@ -196,11 +213,11 @@ class HeadsupGUI:
         # Screenshot display with fixed 16:9 aspect ratio (320x180)
         self.screenshot_canvas = tk.Canvas(screenshot_frame, width=320, height=180,
                                          bg='black', highlightthickness=0)
-        self.screenshot_canvas.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=2, pady=2)
+        self.screenshot_canvas.grid(row=1, column=0, sticky=(tk.W, tk.N), padx=2, pady=2)
 
         # Log frame with reduced padding
         log_frame = ttk.LabelFrame(main_frame, text="System Logs", padding="8")
-        log_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(8, 0))
+        log_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(8, 0))
 
         # Log display with dark theme
         self.log_text = tk.Text(log_frame, height=8, wrap=tk.WORD,
@@ -226,8 +243,8 @@ class HeadsupGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
+        main_frame.rowconfigure(1, weight=1)
         main_frame.rowconfigure(2, weight=1)
-        main_frame.rowconfigure(3, weight=1)
         content_frame.columnconfigure(1, weight=1)
         content_frame.rowconfigure(0, weight=1)
         screenshot_frame.columnconfigure(0, weight=1)
@@ -340,9 +357,9 @@ class HeadsupGUI:
         self.update_status_display()
 
     def update_status_display(self):
-        self.device_name_label.config(text=f"Name: {self.device_name}")
-        self.device_model_label.config(text=f"Model: {self.device_model}")
-        self.device_battery_label.config(text=f"Battery: {self.device_battery:.0%}")
+        self.device_name_label.config(text=self.device_name)
+        self.device_model_label.config(text=self.device_model)
+        self.device_battery_label.config(text=f"{self.device_battery:.0%}")
         self.block_label.config(text=f"Block: {self.current_block}")
 
         if self.total_trials > 0:
