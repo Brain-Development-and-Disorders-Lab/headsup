@@ -428,6 +428,12 @@ class HeadsupGUI:
             self.fixation_btn.config(state=tk.NORMAL)
             self.end_btn.config(state=tk.NORMAL)
             self.update_fixation_button()
+
+            # Clear console, screenshot, and reset device status on new connection
+            self.clear_console()
+            self.clear_screenshot()
+            self.reset_device_status()
+
         elif self.connecting:
             self.set_connection_status("Connecting...", self.warning_color)
             self.connect_btn.config(text="Cancel")
@@ -579,6 +585,26 @@ class HeadsupGUI:
         if self.connected:
             self.toggle_connection()  # Disconnect if connected
         self.root.destroy()
+
+    def clear_console(self):
+        """Clear the console log"""
+        self.log_text.delete(1.0, tk.END)
+
+    def clear_screenshot(self):
+        """Clear the screenshot display"""
+        self.screenshot_canvas.delete("all")
+        self.screenshot_canvas.configure(bg='black')
+
+    def reset_device_status(self):
+        """Reset device status information to default values"""
+        self.device_name = "Offline"
+        self.device_model = "Offline"
+        self.device_battery = 0.0
+        self.current_block = "Inactive"
+        self.current_trial = 0
+        self.total_trials = 0
+        self.fixation_required = True
+        self.update_status_display()
 
 def main():
     root = tk.Tk()
