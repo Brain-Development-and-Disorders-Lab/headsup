@@ -4,26 +4,21 @@ A Python-based control panel for managing and monitoring VR experiments in Unity
 
 ## Features
 
-- **Connection Management**
-  - Connect to VR headset via WebSocket
-  - Real-time connection status monitoring
+- **Remote Start**
   - Configurable IP address and port
+  - Start the VR experiment remotely
 
 - **Device Status**
-  - Display device name and model
-  - Monitor battery level
-  - Track experiment progress
-  - View current block and trial information
+  - Connect to the VR headset via the realtime WebSocket protocol
+  - Real-time VR headset status monitoring (name, model, battery level)
+  - Track the experiment progress
+  - View current experiment block and trial information
+  - Real-time system logs with color-coded messages
 
 - **Experiment Control**
-  - Toggle fixation point
+  - Toggle fixation requirement
   - End experiment safely
   - Capture screenshots from the headset
-
-- **System Monitoring**
-  - Real-time system logs with color-coded messages
-  - Dark theme console for better readability
-  - Timestamped log entries
 
 ## Requirements
 
@@ -31,12 +26,11 @@ A Python-based control panel for managing and monitoring VR experiments in Unity
 - Required Python packages:
 
   ```txt
-  tkinter
   websockets
   pillow
   ```
 
-## Installation
+## Setup
 
 1. Ensure Python 3.7+ is installed on your system
 2. Install required packages:
@@ -45,37 +39,30 @@ A Python-based control panel for managing and monitoring VR experiments in Unity
    pip3 install websockets pillow
    ```
 
-   Note: `tkinter` is typically included with Python installation
-
 ## Usage
 
-1. Start the application:
+1. Start the GUI:
 
    ```bash
    python3 main.py
    ```
 
 2. Connection:
-   - Default connection settings: `localhost:4444`
-   - Click "Connect" to establish connection with the headset
+   - Change IP address to the IP address of the VR headset on the network
+   - Click "Launch Application" to attempt a remote start of the application
+   - Click "Connect" after successfully launching the application to connect to the experiment
    - Status indicator shows connection state
 
 3. Controls:
+   - **Quit Application**: Force-quit the experiment, results in data loss
    - **Capture Screenshot**: Takes a screenshot from the headset view
-   - **Toggle Fixation**: Enable/disable the fixation point
+   - **Disable/Enable Fixation**: Enable/disable the fixation point
    - **End Experiment**: Safely terminate the current experiment
 
 4. Monitoring:
-   - Device status panel shows real-time information
-   - System logs display connection and experiment events
-   - Screenshot preview shows current headset view
-
-## Window Layout
-
-- **Connection Panel**: Top section for connection management
-- **Status Panel**: Left side showing device and experiment status
-- **Screenshot Panel**: Right side displaying headset view (16:9 aspect ratio)
-- **Log Panel**: Bottom section with system logs
+   - **Device Status**: Real-time headset and experiment status information
+   - **Headset Display**: Capture and display screenshots
+   - **System Logs**: Display live feed of headset logs and GUI logs
 
 ## Troubleshooting
 
