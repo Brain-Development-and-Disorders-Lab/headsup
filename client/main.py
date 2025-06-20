@@ -11,14 +11,14 @@ import base64
 from PIL import Image, ImageTk
 import io
 import re
-import time
 import os
+import subprocess
 
 class HeadsupGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Headsup: Control Panel")
-        self.root.geometry("600x600")
+        self.root.geometry("700x600")
         self.root.resizable(False, False)
 
         # Set window icon
@@ -47,14 +47,6 @@ class HeadsupGUI:
         # Configure styles
         self.style.configure('TFrame', background=self.bg_color)
         self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color, font=('Helvetica', 10))
-        self.style.configure('TButton',
-                           background=self.accent_color,
-                           foreground='white',
-                           padding=5)
-        self.style.map('TButton',
-                      background=[('disabled', self.disabled_color),
-                                ('active', '#005fa3')],
-                      foreground=[('disabled', '#666666')])
         self.style.configure('TLabelframe',
                            background=self.bg_color,
                            foreground=self.fg_color)
@@ -85,6 +77,11 @@ class HeadsupGUI:
         self.should_connect = False
         self.loop = None
 
+        # ADB Configuration
+        self.package_name = "com.BrainDevelopmentandDisordersLab.task_vr_rdk"
+        self.adb_port = "5555" # Default ADB port
+        self.application_launched = False
+
         # Headset state
         self.device_name = "Offline"
         self.device_model = "Offline"
@@ -104,45 +101,52 @@ class HeadsupGUI:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Connection frame with reduced padding
-        conn_frame = ttk.LabelFrame(main_frame, text="Connection Status", padding="10")
-        conn_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 12))
-
-        # Status indicator frame with reduced padding
-        status_indicator_frame = ttk.Frame(conn_frame)
-        status_indicator_frame.grid(row=0, column=0, columnspan=5, sticky=(tk.W, tk.E), pady=(0, 8))
-
-        # Status indicator
-        self.status_canvas = tk.Canvas(status_indicator_frame, width=14, height=14,
-                                     bg=self.bg_color, highlightthickness=0)
-        self.status_canvas.grid(row=0, column=0, padx=(0, 6))
-        self.status_canvas.create_oval(2, 2, 12, 12, fill=self.disabled_color, tags='status_dot')
-
-        self.status_label = ttk.Label(status_indicator_frame, text="Disconnected", style='Status.TLabel')
-        self.status_label.grid(row=0, column=1, sticky=tk.W)
+        conn_frame = ttk.LabelFrame(main_frame, text="Connectivity Status", padding="10")
+        conn_frame.grid(row=0, column=0, columnspan=7, sticky=(tk.W, tk.E), pady=(0, 12))
 
         # Connection controls with reduced padding
-        controls_frame = ttk.Frame(conn_frame)
-        controls_frame.grid(row=1, column=0, columnspan=5, sticky=(tk.W, tk.E))
+        adb_controls_frame = ttk.Frame(conn_frame)
+        adb_controls_frame.grid(row=0, column=0, columnspan=7, sticky=(tk.W, tk.E), pady=(0, 4))
 
         # IP Address with reduced padding
-        ttk.Label(controls_frame, text="IP Address:").grid(row=0, column=0, padx=(0, 4))
+        ttk.Label(adb_controls_frame, text="Headset IP Address:").grid(row=0, column=0, padx=(0, 4))
         self.ip_var = tk.StringVar(value="localhost")
-        self.ip_entry = ttk.Entry(controls_frame, textvariable=self.ip_var, width=20)
+        self.ip_entry = ttk.Entry(adb_controls_frame, textvariable=self.ip_var, width=20)
         self.ip_entry.grid(row=0, column=1, padx=(0, 12))
 
+        # Launch button
+        self.launch_btn = ttk.Button(adb_controls_frame, text="Launch Application", command=self.launch_application)
+        self.launch_btn.grid(row=0, column=2, padx=2)
+
+        # Quit button
+        self.quit_btn = ttk.Button(adb_controls_frame, text="Quit Application", command=self.quit_application, state=tk.DISABLED)
+        self.quit_btn.grid(row=0, column=3, padx=2)
+
+        ws_controls_frame = ttk.Frame(conn_frame)
+        ws_controls_frame.grid(row=1, column=0, columnspan=7, sticky=(tk.W, tk.E))
+
         # Port with reduced padding
-        ttk.Label(controls_frame, text="Port:").grid(row=0, column=2, padx=(0, 4))
+        ttk.Label(ws_controls_frame, text="Server Port:").grid(row=0, column=0, padx=(0, 4))
         self.port_var = tk.StringVar(value="4444")
-        self.port_entry = ttk.Entry(controls_frame, textvariable=self.port_var, width=6)
-        self.port_entry.grid(row=0, column=3, padx=(0, 12))
+        self.port_entry = ttk.Entry(ws_controls_frame, textvariable=self.port_var, width=6, state=tk.DISABLED)
+        self.port_entry.grid(row=0, column=1, padx=(0, 12))
 
         # Connect button
-        self.connect_btn = ttk.Button(controls_frame, text="Connect", command=self.toggle_connection)
-        self.connect_btn.grid(row=0, column=4, padx=4)
+        self.connect_btn = ttk.Button(ws_controls_frame, text="Connect", command=self.toggle_connection, state=tk.DISABLED)
+        self.connect_btn.grid(row=0, column=2, padx=4)
+
+        # Status indicator
+        self.status_canvas = tk.Canvas(ws_controls_frame, width=14, height=14,
+                                     bg=self.bg_color, highlightthickness=0)
+        self.status_canvas.grid(row=0, column=3, padx=(12, 6))
+        self.status_canvas.create_oval(2, 2, 12, 12, fill=self.disabled_color, tags='status_dot')
+
+        self.status_label = ttk.Label(ws_controls_frame, text="Disconnected", style='Status.TLabel')
+        self.status_label.grid(row=0, column=4, sticky=tk.W)
 
         # Status and Screenshot container
         content_frame = ttk.Frame(main_frame)
-        content_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        content_frame.grid(row=1, column=0, columnspan=7, sticky=(tk.W, tk.E, tk.N, tk.S))
         content_frame.columnconfigure(1, weight=1)
         content_frame.rowconfigure(0, weight=1)
 
@@ -217,7 +221,7 @@ class HeadsupGUI:
 
         # Log frame with reduced padding
         log_frame = ttk.LabelFrame(main_frame, text="System Logs", padding="8")
-        log_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(8, 0))
+        log_frame.grid(row=2, column=0, columnspan=7, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(8, 0))
 
         # Log display with dark theme
         self.log_text = tk.Text(log_frame, height=8, wrap=tk.WORD,
@@ -242,13 +246,10 @@ class HeadsupGUI:
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(1, weight=1)
+        main_frame.columnconfigure(6, weight=1)
         main_frame.rowconfigure(2, weight=1)
         content_frame.columnconfigure(1, weight=1)
         content_frame.rowconfigure(0, weight=1)
-        screenshot_frame.columnconfigure(0, weight=1)
-        screenshot_frame.rowconfigure(1, weight=1)
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
 
@@ -421,9 +422,11 @@ class HeadsupGUI:
     def update_connection_state(self):
         if self.connected:
             self.set_connection_status("Connected", self.success_color)
-            self.connect_btn.config(text="Disconnect")
+            self.connect_btn.config(text="Disconnect", state=tk.NORMAL)
             self.ip_entry.config(state=tk.DISABLED)
             self.port_entry.config(state=tk.DISABLED)
+            self.launch_btn.config(state=tk.DISABLED)
+            self.quit_btn.config(state=tk.NORMAL if self.application_launched else tk.DISABLED)
             self.screenshot_btn.config(state=tk.NORMAL)
             self.fixation_btn.config(state=tk.NORMAL)
             self.end_btn.config(state=tk.NORMAL)
@@ -436,25 +439,34 @@ class HeadsupGUI:
 
         elif self.connecting:
             self.set_connection_status("Connecting...", self.warning_color)
-            self.connect_btn.config(text="Cancel")
+            self.connect_btn.config(text="Cancel", state=tk.NORMAL)
             self.ip_entry.config(state=tk.DISABLED)
             self.port_entry.config(state=tk.DISABLED)
+            self.launch_btn.config(state=tk.DISABLED)
+            self.quit_btn.config(state=tk.DISABLED)
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
         elif self.connection_error:
             self.set_connection_status("Connection Error", self.error_color)
-            self.connect_btn.config(text="Retry")
+            self.connect_btn.config(text="Retry", state=tk.NORMAL)
             self.ip_entry.config(state=tk.NORMAL)
             self.port_entry.config(state=tk.NORMAL)
+            self.launch_btn.config(state=tk.NORMAL)
+            self.quit_btn.config(state=tk.NORMAL if self.application_launched else tk.DISABLED)
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
         else:
             self.set_connection_status("Disconnected", self.disabled_color)
-            self.connect_btn.config(text="Connect")
+            self.launch_btn.config(state=tk.NORMAL)
             self.ip_entry.config(state=tk.NORMAL)
-            self.port_entry.config(state=tk.NORMAL)
+            self.quit_btn.config(state=tk.NORMAL if self.application_launched else tk.DISABLED)
+
+            connect_state = tk.NORMAL if self.application_launched else tk.DISABLED
+            self.connect_btn.config(text="Connect", state=connect_state)
+            self.port_entry.config(state=connect_state)
+
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
@@ -463,16 +475,6 @@ class HeadsupGUI:
     def set_connection_status(self, status_text, color):
         self.status_label.config(text=status_text)
         self.status_canvas.itemconfig('status_dot', fill=color)
-
-        # Update button colors based on status
-        if status_text == "Connected":
-            self.style.configure('TButton', background=self.success_color)
-        elif status_text == "Connecting...":
-            self.style.configure('TButton', background=self.warning_color)
-        elif status_text == "Connection Error":
-            self.style.configure('TButton', background=self.error_color)
-        else:
-            self.style.configure('TButton', background=self.accent_color)
 
     def toggle_connection(self):
         if self.connected:
@@ -512,6 +514,95 @@ class HeadsupGUI:
 
             self.should_connect = True
             self.update_connection_state()
+
+    def launch_application(self):
+        """Launch the application on the device using ADB"""
+        try:
+            # Get the IP address from the entry field
+            device_ip = self.ip_var.get()
+
+            # Check if IP is valid
+            if not self.validate_ip(device_ip):
+                messagebox.showerror("Invalid Input", "Please enter a valid IP address")
+                return
+
+            # Connect to device via ADB
+            connect_cmd = ["adb", "connect", f"{device_ip}:{self.adb_port}"]
+            self.log(f"Connecting to device: {' '.join(connect_cmd)}")
+
+            result = subprocess.run(connect_cmd, capture_output=True, text=True, timeout=10)
+
+            if result.returncode != 0:
+                self.log(f"ADB connect failed: {result.stderr}")
+                messagebox.showerror("ADB Error", f"Failed to connect to device: {result.stderr}")
+                return
+
+            self.log(f"ADB connect result: {result.stdout.strip()}")
+
+            # Launch the application
+            launch_cmd = ["adb", "-s", f"{device_ip}:{self.adb_port}", "shell", "am", "start", "-n", f"{self.package_name}/com.unity3d.player.UnityPlayerActivity"]
+            self.log(f"Launching application: {' '.join(launch_cmd)}")
+
+            result = subprocess.run(launch_cmd, capture_output=True, text=True, timeout=10)
+
+            if result.returncode == 0:
+                self.log("Application launched successfully")
+                messagebox.showinfo("Success", "Application launched successfully on the device")
+                self.application_launched = True
+                self.quit_btn.config(state=tk.NORMAL)
+                self.ip_entry.config(state=tk.NORMAL)
+                self.port_entry.config(state=tk.NORMAL)
+                self.connect_btn.config(state=tk.NORMAL)
+            else:
+                self.log(f"Launch failed: {result.stderr}")
+                messagebox.showerror("Launch Error", f"Failed to launch application: {result.stderr}")
+
+        except subprocess.TimeoutExpired:
+            self.log("ADB command timed out")
+            messagebox.showerror("Timeout", "ADB command timed out. Please check device connection.")
+        except FileNotFoundError:
+            self.log("ADB not found in PATH")
+            messagebox.showerror("ADB Error", "ADB not found. Please ensure Android SDK is installed and ADB is in your PATH.")
+        except Exception as e:
+            self.log(f"Launch error: {e}")
+            messagebox.showerror("Error", f"Unexpected error: {e}")
+
+    def quit_application(self):
+        """Quit the application on the device using ADB"""
+        if messagebox.askyesno("Confirm Quit", "Are you sure you want to quit the application? If an experiment is running, all data will be lost."):
+            try:
+                device_ip = self.ip_var.get()
+
+                if not self.validate_ip(device_ip):
+                    messagebox.showerror("Invalid Input", "Please enter a valid IP address")
+                    return
+
+                # ADB command to force stop
+                quit_cmd = ["adb", "-s", f"{device_ip}:{self.adb_port}", "shell", "am", "force-stop", self.package_name]
+                self.log(f"Quitting application: {' '.join(quit_cmd)}")
+
+                result = subprocess.run(quit_cmd, capture_output=True, text=True, timeout=10)
+
+                if result.returncode == 0:
+                    self.log("Application quit successfully")
+                    self.application_launched = False
+                    self.quit_btn.config(state=tk.DISABLED)
+                    self.ip_entry.config(state=tk.DISABLED)
+                    self.port_entry.config(state=tk.DISABLED)
+                    self.connect_btn.config(state=tk.DISABLED)
+                else:
+                    self.log(f"Quit failed: {result.stderr}")
+                    messagebox.showerror("Quit Error", f"Failed to quit application: {result.stderr}")
+
+            except subprocess.TimeoutExpired:
+                self.log("ADB command timed out")
+                messagebox.showerror("Timeout", "ADB command timed out. Please check device connection.")
+            except FileNotFoundError:
+                self.log("ADB not found in PATH")
+                messagebox.showerror("ADB Error", "ADB not found. Please ensure Android SDK is installed and ADB is in your PATH.")
+            except Exception as e:
+                self.log(f"Quit error: {e}")
+                messagebox.showerror("Error", f"Unexpected error: {e}")
 
     async def send_command(self, command):
         if self.websocket and self.connected:
