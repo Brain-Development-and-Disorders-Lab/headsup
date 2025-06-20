@@ -4,16 +4,14 @@
 
 `HeadsupServer.cs` implements a WebSocket server on the headset for real-time communication with the client control panel (default address: `localhost:4444`). The server handles the following message types:
 
-* `status`: Sends a JSON object containing:
-  - Device information (name, model, battery level)
-  - Experiment progress (current block, trial number, total trials)
-  - Fixation state
+* `active`: Returns a boolean indicating if the server is responsive
+* `status`: Sends a JSON object containing experiment status from ExperimentManager
 * `logs`: Streams Unity console output to the client
-* `screenshot`: Captures and sends the current camera view
-* `enable_fixation`/`disable_fixation`: Toggles the fixation point
+* `screenshot`: Captures and sends the current camera view from all capture sources
+* `enable_fixation`/`disable_fixation`: Toggles the fixation requirement
 * `kill`: Safely terminates the experiment
 
-`HeadsupServer.cs` should be attached to a GameObject in the scene. The server automatically manages WebSocket connections and message handling.
+`HeadsupServer.cs` should be attached to a GameObject in the scene that also has an `ExperimentManager` component. The server automatically manages WebSocket connections and message handling.
 
 ## Screenshot Component
 
@@ -23,7 +21,7 @@
   - Resolution (default: 1280x720)
   - Image format (JPG/PNG)
   - Optional file saving
-  - Background color control
+  - Optional object hiding during capture
 
 * Public methods:
   - `CaptureScreenshot()`: Triggers a screenshot capture
@@ -36,13 +34,13 @@
 
 ## Setup Instructions
 
-1. Add `HeadsupServer.cs` to a GameObject in your scene
+1. Add `HeadsupServer.cs` to a GameObject in your scene that has an `ExperimentManager` component
 2. Attach `CaptureManager.cs` to your main camera
 3. Configure the capture settings in the Unity Inspector:
    - Set desired resolution
    - Choose image format
    - Configure save settings if needed
-   - Set background color
+   - Set optional object to hide during capture
 
 ## Notes
 
@@ -53,8 +51,9 @@
 ## Dependencies
 
 * Unity 2020.3 or higher
-* WebSocket implementation for Unity
-* Camera component for screenshot capture
+* `WebSocketSharp` library for Unity
+* `Camera` component for screenshot capture
+* `ExperimentManager` component for experiment status
 
 ## License
 
