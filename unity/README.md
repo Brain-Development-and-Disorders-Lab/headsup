@@ -9,6 +9,8 @@
 * `logs`: Streams Unity console output to the client
 * `screenshot`: Captures and sends the current camera view from all capture sources
 * `enable_fixation`/`disable_fixation`: Toggles the fixation requirement
+* `start_task`: Continue from the initial fit screen
+* `start_calibration`: Begin the eye-tracking calibration process
 * `kill`: Safely terminates the experiment
 
 `HeadsupServer.cs` should be attached to a GameObject in the scene that also has an `ExperimentManager` component. The server automatically manages WebSocket connections and message handling.

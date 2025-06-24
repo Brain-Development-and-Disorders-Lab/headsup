@@ -12,9 +12,9 @@ Headsup is a control panel to remotely monitor and interact with VR headsets ove
 
 ## Components
 
-Client: Dashboard UI presenting a screenshot feed and debugging information via a web browser.
+**Client**: Dashboard UI presenting a screenshot feed and debugging information via a web browser.
 
-Unity: Required Unity scripts for VR applications to stream information.
+**Unity**: Required Unity scripts for VR applications to stream information.
 
 ## Considerations
 
