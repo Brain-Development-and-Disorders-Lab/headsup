@@ -92,6 +92,10 @@ class HeadsupGUI:
         self.fixation_required = True
         self.screenshot_data = []
 
+        # Task and calibration state
+        self.task_started = False
+        self.calibration_started = False
+
         self.setup_gui()
         self.setup_websocket_thread()
 
@@ -188,9 +192,23 @@ class HeadsupGUI:
         self.block_label = ttk.Label(status_frame, text="Block: Inactive")
         self.block_label.grid(row=4, column=0, sticky=tk.W, pady=(0, 16))
 
+        # Task and Calibration buttons
+        task_cal_frame = ttk.Frame(status_frame)
+        task_cal_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 8))
+        task_cal_frame.columnconfigure(0, weight=1)
+        task_cal_frame.columnconfigure(1, weight=1)
+
+        self.start_task_btn = ttk.Button(task_cal_frame, text="Start Task",
+                                       command=self.start_task, state=tk.DISABLED)
+        self.start_task_btn.grid(row=0, column=0, padx=4, sticky=tk.E)
+
+        self.start_calibration_btn = ttk.Button(task_cal_frame, text="Start Calibration",
+                                              command=self.start_calibration, state=tk.DISABLED)
+        self.start_calibration_btn.grid(row=0, column=1, padx=4, sticky=tk.W)
+
         # Control buttons with increased padding
         control_frame = ttk.Frame(status_frame)
-        control_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 8))
+        control_frame.grid(row=6, column=0, sticky=(tk.W, tk.E), pady=(0, 8))
         control_frame.columnconfigure(0, weight=1)
         control_frame.columnconfigure(1, weight=1)
 
@@ -420,6 +438,9 @@ class HeadsupGUI:
             self.log(f"Error displaying screenshot: {e}")
 
     def update_connection_state(self):
+        # Check if we're connecting to localhost (development mode)
+        is_localhost = self.ip_var.get().lower() == "localhost"
+
         if self.connected:
             self.set_connection_status("Connected", self.success_color)
             self.connect_btn.config(text="Disconnect", state=tk.NORMAL)
@@ -430,6 +451,8 @@ class HeadsupGUI:
             self.screenshot_btn.config(state=tk.NORMAL)
             self.fixation_btn.config(state=tk.NORMAL)
             self.end_btn.config(state=tk.NORMAL)
+            self.start_task_btn.config(state=tk.NORMAL)
+            self.start_calibration_btn.config(state=tk.NORMAL if self.task_started else tk.DISABLED)
             self.update_fixation_button()
 
             # Clear console, screenshot, and reset device status on new connection
@@ -447,6 +470,8 @@ class HeadsupGUI:
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
+            self.start_task_btn.config(state=tk.DISABLED)
+            self.start_calibration_btn.config(state=tk.DISABLED)
         elif self.connection_error:
             self.set_connection_status("Connection Error", self.error_color)
             self.connect_btn.config(text="Retry", state=tk.NORMAL)
@@ -457,19 +482,24 @@ class HeadsupGUI:
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
+            self.start_task_btn.config(state=tk.DISABLED)
+            self.start_calibration_btn.config(state=tk.DISABLED)
         else:
             self.set_connection_status("Disconnected", self.disabled_color)
             self.launch_btn.config(state=tk.NORMAL)
             self.ip_entry.config(state=tk.NORMAL)
             self.quit_btn.config(state=tk.NORMAL if self.application_launched else tk.DISABLED)
 
-            connect_state = tk.NORMAL if self.application_launched else tk.DISABLED
+            # Allow connection if app is launched OR if connecting to localhost (development mode)
+            connect_state = tk.NORMAL if (self.application_launched or is_localhost) else tk.DISABLED
             self.connect_btn.config(text="Connect", state=connect_state)
             self.port_entry.config(state=connect_state)
 
             self.screenshot_btn.config(state=tk.DISABLED)
             self.fixation_btn.config(state=tk.DISABLED)
             self.end_btn.config(state=tk.DISABLED)
+            self.start_task_btn.config(state=tk.DISABLED)
+            self.start_calibration_btn.config(state=tk.DISABLED)
             self.update_status({})
 
     def set_connection_status(self, status_text, color):
@@ -526,6 +556,17 @@ class HeadsupGUI:
                 messagebox.showerror("Invalid Input", "Please enter a valid IP address")
                 return
 
+            # Special handling for localhost (development mode)
+            if device_ip.lower() == "localhost":
+                self.log("Development mode: Skipping ADB launch for localhost")
+                self.application_launched = True
+                self.quit_btn.config(state=tk.NORMAL)
+                self.ip_entry.config(state=tk.NORMAL)
+                self.port_entry.config(state=tk.NORMAL)
+                self.connect_btn.config(state=tk.NORMAL)
+                self.update_connection_state()
+                return
+
             # Connect to device via ADB
             connect_cmd = ["adb", "connect", f"{device_ip}:{self.adb_port}"]
             self.log(f"Connecting to device: {' '.join(connect_cmd)}")
@@ -577,6 +618,17 @@ class HeadsupGUI:
                     messagebox.showerror("Invalid Input", "Please enter a valid IP address")
                     return
 
+                # Special handling for localhost (development mode)
+                if device_ip.lower() == "localhost":
+                    self.log("Development mode: Skipping ADB quit for localhost")
+                    self.application_launched = False
+                    self.quit_btn.config(state=tk.DISABLED)
+                    self.ip_entry.config(state=tk.DISABLED)
+                    self.port_entry.config(state=tk.DISABLED)
+                    self.connect_btn.config(state=tk.DISABLED)
+                    self.update_connection_state()
+                    return
+
                 # ADB command to force stop
                 quit_cmd = ["adb", "-s", f"{device_ip}:{self.adb_port}", "shell", "am", "force-stop", self.package_name]
                 self.log(f"Quitting application: {' '.join(quit_cmd)}")
@@ -625,6 +677,21 @@ class HeadsupGUI:
 
     def capture_screenshot(self):
         self.send_command_safe("screenshot")
+
+    def start_task(self):
+        """Start the task on the headset"""
+        self.task_started = True
+        self.start_task_btn.config(state=tk.DISABLED)
+        self.start_calibration_btn.config(state=tk.NORMAL)
+        self.send_command_safe("start_task")
+        self.log("Task started")
+
+    def start_calibration(self):
+        """Start the calibration on the headset"""
+        self.calibration_started = True
+        self.start_calibration_btn.config(state=tk.DISABLED)
+        self.send_command_safe("start_calibration")
+        self.log("Calibration started")
 
     def update_fixation_button(self):
         """Update the fixation button text based on current state"""
@@ -695,6 +762,8 @@ class HeadsupGUI:
         self.current_trial = 0
         self.total_trials = 0
         self.fixation_required = True
+        self.task_started = False
+        self.calibration_started = False
         self.update_status_display()
 
 def main():
