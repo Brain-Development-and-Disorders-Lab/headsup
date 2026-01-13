@@ -1,0 +1,30 @@
+{
+  "name": "com.headsup.monitoring",
+  "version": "1.0.0",
+  "displayName": "Headsup Monitoring",
+  "description": "Real-time monitoring and control system for Unity VR applications. Provides WebSocket-based communication, screenshot capture, and experiment management integration for behavioral research.",
+  "unity": "2020.3",
+  "keywords": [
+    "VR",
+    "monitoring",
+    "websocket",
+    "screenshot",
+    "experiment",
+    "research",
+    "behavioral"
+  ],
+  "author": {
+    "name": "Henry Burgess",
+    "url": "https://github.com/henryjburg/headsup"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Setup Example",
+      "description": "Demonstrates basic integration with experiment manager and gaze tracking",
+      "path": "Samples~/BasicSetup"
+    }
+  ]
+}

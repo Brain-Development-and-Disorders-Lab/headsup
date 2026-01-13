@@ -1,61 +1,140 @@
-# Headsup Unity Components
+# Headsup Monitoring Package
 
-## Server Component
+Unity Package Manager (UPM) package for real-time monitoring and control of VR experiments. Provides WebSocket-based communication, screenshot capture, and experiment management integration for behavioral research.
 
-`HeadsupServer.cs` implements a WebSocket server on the headset for real-time communication with the client control panel (default address: `localhost:4444`). The server handles the following message types:
+## Installation
 
-* `active`: Returns a boolean indicating if the server is responsive
-* `status`: Sends a JSON object containing experiment status from ExperimentManager
-* `logs`: Streams Unity console output to the client
-* `screenshot`: Captures and sends the current camera view from all capture sources
-* `enable_fixation`/`disable_fixation`: Toggles the fixation requirement
-* `start_task`: Continue from the initial fit screen
-* `start_calibration`: Begin the eye-tracking calibration process
-* `kill`: Safely terminates the experiment
+### Via Git URL (Recommended)
 
-`HeadsupServer.cs` should be attached to a GameObject in the scene that also has an `ExperimentManager` component. The server automatically manages WebSocket connections and message handling.
+1. Open Unity Package Manager (Window > Package Manager)
+2. Click the "+" button in the top-left corner
+3. Select "Add package from git URL"
+4. Enter: `https://github.com/henryjburg/headsup.git?path=/unity`
+5. Click "Add"
 
-## Screenshot Component
+Unity will automatically install the package and its dependencies (Newtonsoft.Json).
 
-`CaptureManager.cs` provides screenshot functionality for the VR headset. It should be attached to the main camera in the scene. The component features:
+### Via Local Path
 
-* Configurable capture settings:
-  - Resolution (default: 1280x720)
-  - Image format (JPG/PNG)
-  - Optional file saving
-  - Optional object hiding during capture
+1. Clone this repository to your local machine
+2. Open Unity Package Manager (Window > Package Manager)
+3. Click the "+" button and select "Add package from disk"
+4. Navigate to the `unity` folder and select `package.json`
+5. Click "Open"
 
-* Public methods:
-  - `CaptureScreenshot()`: Triggers a screenshot capture
-  - `GetLastScreenshot()`: Returns the most recent screenshot as a byte array
+## Quick Start
 
-* Performance optimizations:
-  - Reuses render textures for multiple captures
-  - Optional cleanup after capture
-  - Configurable object hiding during capture
+### 1. Install Dependencies
 
-## Setup Instructions
+The package requires two external dependencies:
 
-1. Add `HeadsupServer.cs` to a GameObject in your scene that has an `ExperimentManager` component
-2. Attach `CaptureManager.cs` to your main camera
-3. Configure the capture settings in the Unity Inspector:
-   - Set desired resolution
-   - Choose image format
-   - Configure save settings if needed
-   - Set optional object to hide during capture
+- **Newtonsoft.Json** - Automatically installed via Unity Package Manager
+- **WebSocketSharp** - Must be installed manually (see [Dependencies](#dependencies) section below)
 
-## Notes
+### 2. Implement Interfaces
 
-* Tested on a Meta Quest Pro headset
-* Screenshots are captured at the configured resolution and maintain aspect ratio
-* Screenshot capture may cause a brief performance impact
+Add the Headsup interfaces to your experiment manager:
+
+```csharp
+using Headsup.Monitoring;
+using System.Collections.Generic;
+
+public class YourExperimentManager : MonoBehaviour, IHeadsupExperimentManager
+{
+    public void ForceEnd() { /* Your implementation */ }
+
+    public Dictionary<string, string> GetExperimentStatus()
+    {
+        return new Dictionary<string, string>
+        {
+            { "active_block", currentBlock.ToString() },
+            { "trial_number", currentTrial.ToString() }
+        };
+    }
+
+    public void StartTask() { /* Your implementation */ }
+    public void StartCalibration() { /* Your implementation */ }
+}
+```
+
+### 3. Add Components to Scene
+
+1. Add `HeadsupServer` component to a GameObject in your scene
+2. Add `CaptureManager` component to your camera(s)
+3. In the HeadsupServer inspector:
+   - Set Port (default: 4444)
+   - Assign CaptureManager(s) to Capture Sources
+   - Assign your experiment manager GameObject
+   - Optionally assign your gaze manager GameObject
+
+### 4. Connect with Client
+
+Run the Python Headsup client from the `/client` folder to connect to your Unity application.
+
+## Package Components
+
+### HeadsupServer
+
+WebSocket server for real-time communication (default port: 4444). Handles commands:
+
+- `active` - Returns server responsive status
+- `status` - Broadcasts experiment status from IHeadsupExperimentManager
+- `logs` - Streams Unity console output
+- `screenshot` - Captures and sends camera views
+- `enable_fixation`/`disable_fixation` - Controls fixation requirements via IHeadsupGazeManager
+- `start_task` - Triggers task start via IHeadsupExperimentManager
+- `start_calibration` - Initiates calibration via IHeadsupExperimentManager
+- `kill` - Safely terminates experiment via IHeadsupExperimentManager
+
+### CaptureManager
+
+Screenshot capture system for VR cameras. Features:
+
+- Configurable resolution (default: 1280x720)
+- Multiple image formats (JPG/PNG)
+- Optional file saving
+- Performance optimizations (render texture reuse)
+- Public API: `CaptureScreenshot()`, `GetLastScreenshot()`
+
+### Interfaces
+
+- `IHeadsupExperimentManager` - Integrate your experiment controller
+- `IHeadsupGazeManager` - Integrate your eye-tracking system (optional)
+
+## Sample
+
+Import the "Basic Setup Example" sample from Package Manager to see a working implementation with example scripts.
 
 ## Dependencies
 
-* Unity 2020.3 or higher
-* `WebSocketSharp` library for Unity
-* `Camera` component for screenshot capture
-* `ExperimentManager` component for experiment status
+### Automatic Dependencies
+
+- **Newtonsoft.Json** (3.2.1+) - Automatically installed via Unity Package Manager
+
+### Manual Dependencies
+
+- **WebSocketSharp-netstandard** - Must be installed manually:
+  1. Download the NuGet package: [WebSocketSharp-netstandard](https://www.nuget.org/packages/WebSocketSharp-netstandard/)
+  2. Extract the DLL from the package
+  3. Place `websocket-sharp.dll` in your project's `Assets/Plugins/` folder
+  4. Alternative: Use NuGetForUnity to install the package
+
+### Unity Version
+
+- Unity 2020.3 or higher
+
+## Documentation
+
+For detailed setup instructions and API documentation, see:
+- [Documentation~/setup-guide.md](Documentation~/setup-guide.md) - Step-by-step integration guide
+- [Documentation~/index.md](Documentation~/index.md) - Complete API reference
+- [Samples~/BasicSetup/README.md](Samples~/BasicSetup/README.md) - Sample usage guide
+
+## Platform Support
+
+- Tested on Meta Quest Pro
+- Compatible with Android VR platforms
+- Windows Editor support
 
 ## License
 
