@@ -252,7 +252,7 @@ public class MyGazeManager : MonoBehaviour, IHeadsupGazeManager
 
 ### 1. Install Package
 
-Via git URL: `https://github.com/henryjburg/headsup.git?path=/unity`
+Via git URL: `https://github.com/Brain-Development-and-Disorders-Lab/headsup.git?path=/unity`
 
 ### 2. Install WebSocketSharp
 
@@ -404,5 +404,5 @@ See [LICENSE.md](../LICENSE.md) for license information.
 
 For issues, questions, or feedback:
 
-- GitHub Issues: [https://github.com/henryjburg/headsup/issues](https://github.com/henryjburg/headsup/issues)
+- GitHub Issues: [https://github.com/Brain-Development-and-Disorders-Lab/headsup/issues](https://github.com/Brain-Development-and-Disorders-Lab/headsup/issues)
 - Email: [henry.burgess@wustl.edu](mailto:henry.burgess@wustl.edu)

@@ -21,7 +21,7 @@ Step-by-step guide for integrating Headsup Monitoring into your Unity VR project
 2. Add package from git URL
    - Click the **"+"** button in top-left corner
    - Select **"Add package from git URL"**
-   - Enter: `https://github.com/henryjburg/headsup.git?path=/unity`
+   - Enter: `https://github.com/Brain-Development-and-Disorders-Lab/headsup.git?path=/unity`
    - Click **"Add"**
 
 3. Wait for installation
@@ -32,7 +32,7 @@ Step-by-step guide for integrating Headsup Monitoring into your Unity VR project
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/henryjburg/headsup.git
+   git clone https://github.com/Brain-Development-and-Disorders-Lab/headsup.git
    ```
 
 2. Add package from disk
@@ -407,7 +407,7 @@ If connection fails, check firewall:
 
 For additional help:
 
-- **GitHub Issues**: [https://github.com/henryjburg/headsup/issues](https://github.com/henryjburg/headsup/issues)
+- **GitHub Issues**: [https://github.com/Brain-Development-and-Disorders-Lab/headsup/issues](https://github.com/Brain-Development-and-Disorders-Lab/headsup/issues)
 - **Email**: henry.burgess@wustl.edu
 - **Sample Code**: Import "Basic Setup Example" from Package Manager
 

@@ -15,7 +15,7 @@
   ],
   "author": {
     "name": "Henry Burgess",
-    "url": "https://github.com/henryjburg/headsup"
+    "url": "https://github.com/Brain-Development-and-Disorders-Lab/headsup"
   },
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1"

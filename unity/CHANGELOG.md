@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Install via Unity Package Manager using git URL:
 ```
-https://github.com/henryjburg/headsup.git?path=/unity
+https://github.com/Brain-Development-and-Disorders-Lab/headsup.git?path=/unity
 ```
 
 ### Migration Notes

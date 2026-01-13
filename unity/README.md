@@ -9,7 +9,7 @@ Unity Package Manager (UPM) package for real-time monitoring and control of VR e
 1. Open Unity Package Manager (Window > Package Manager)
 2. Click the "+" button in the top-left corner
 3. Select "Add package from git URL"
-4. Enter: `https://github.com/henryjburg/headsup.git?path=/unity`
+4. Enter: `https://github.com/Brain-Development-and-Disorders-Lab/headsup.git?path=/unity`
 5. Click "Add"
 
 Unity will automatically install the package and its dependencies (Newtonsoft.Json).
