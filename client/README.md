@@ -1,90 +1,80 @@
 # Headsup Client
 
-A Python-based control panel for managing and monitoring VR experiments in Unity. This application provides a user-friendly interface for connecting to the VR headset, capturing screenshots, and monitoring experiment progress.
+Python-based control panel for monitoring and managing Unity VR experiments. Provides remote control capabilities, real-time status monitoring, and screenshot capture for VR headsets running the Headsup Unity package.
 
 ## Features
 
-- **Remote Start**
-  - Configurable IP address and port
-  - Start the VR experiment remotely
-
-- **Device Status**
-  - Connect to the VR headset via the realtime WebSocket protocol
-  - Real-time VR headset status monitoring (name, model, battery level)
-  - Track the experiment progress
-  - View current experiment block and trial information
-  - Real-time system logs with color-coded messages
-
-- **Experiment Control**
-  - Toggle fixation requirement
-  - End experiment safely
-  - Capture screenshots from the headset
+- Remote application launch and connection management
+- Real-time device status monitoring (battery level, headset model)
+- Experiment progress tracking (blocks, trials, custom status fields)
+- Screenshot capture from VR headset
+- Live system log streaming with color-coded messages
+- Experiment control (start, end, fixation toggle)
 
 ## Requirements
 
 - Python 3.7 or higher
-- Required Python packages:
+- Dependencies: `websockets`, `pillow`
 
-  ```txt
-  websockets
-  pillow
-  ```
+## Installation
 
-## Setup
+Install required packages:
 
-1. Ensure Python 3.7+ is installed on your system
-2. Install required packages:
-
-   ```bash
-   pip3 install websockets pillow
-   ```
+```bash
+pip3 install websockets pillow
+```
 
 ## Usage
 
-1. Start the GUI:
+Start the control panel:
 
-   ```bash
-   python3 main.py
-   ```
+```bash
+python3 main.py
+```
 
-2. Connection:
-   - Change IP address to the IP address of the VR headset on the network
-   - Click "Launch Application" to attempt a remote start of the application
-   - Click "Connect" after successfully launching the application to connect to the experiment
-   - Status indicator shows connection state
+### Connection
 
-3. Controls:
-   - **Quit Application**: Force-quit the experiment, results in data loss
-   - **Capture Screenshot**: Takes a screenshot from the headset view
-   - **Disable/Enable Fixation**: Enable/disable the fixation point
-   - **End Experiment**: Safely terminate the current experiment
+1. Enter the VR headset's IP address (found in device network settings)
+2. Click "Launch Application" to remotely start the VR application
+3. Click "Connect" once the application is running
+4. Connection status indicator shows current state
 
-4. Monitoring:
-   - **Device Status**: Real-time headset and experiment status information
-   - **Headset Display**: Capture and display screenshots
-   - **System Logs**: Display live feed of headset logs and GUI logs
+### Controls
+
+- **Quit Application**: Force quit the VR application (may result in data loss)
+- **Capture Screenshot**: Capture current headset view
+- **Enable/Disable Fixation**: Toggle fixation requirement
+- **End Experiment**: Safely terminate the experiment
+
+### Monitoring Panels
+
+- **Device Status**: Real-time headset information and experiment progress
+- **Headset Display**: Screenshot viewer
+- **System Logs**: Live log feed from VR application and client
 
 ## Troubleshooting
 
-- **Connection Issues**:
-  - Verify headset is running and accessible
-  - Check IP address and port settings
-  - Ensure no firewall is blocking the connection
+**Connection fails:**
 
-- **Screenshot Issues**:
-  - Verify headset is connected
-  - Check if the experiment is running
-  - Ensure sufficient memory is available
+- Verify VR application is running
+- Confirm IP address is correct
+- Check both devices are on the same network
+- Ensure no firewall is blocking port 4444
+
+**Screenshots not working:**
+
+- Verify headset is connected
+- Confirm experiment is running
+- Check available memory on headset
 
 ## License
 
-<!-- CC BY-NC-SA 4.0 License -->
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
   <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" />
 </a>
 <br />
 This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
-## Issues and Feedback
+## Contact
 
-Please contact **Henry Burgess** <[henry.burgess@wustl.edu](mailto:henry.burgess@wustl.edu)> for all code-related issues and feedback.
+**Henry Burgess** <[henry.burgess@wustl.edu](mailto:henry.burgess@wustl.edu)>
