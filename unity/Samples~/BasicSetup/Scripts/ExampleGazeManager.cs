@@ -3,6 +3,7 @@ File: ExampleGazeManager.cs
 Author: Henry Burgess <henry.burgess@wustl.edu>
 */
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Headsup.Monitoring;
 
 namespace Headsup.Samples
@@ -72,7 +73,7 @@ namespace Headsup.Samples
         private void Update()
         {
             // Example: Only allow trial progression when fixation requirement is met
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 if (IsFixationRequirementMet())
                 {
