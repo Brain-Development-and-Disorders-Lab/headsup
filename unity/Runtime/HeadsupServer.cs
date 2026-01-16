@@ -14,13 +14,13 @@ namespace Headsup.Monitoring
     public class Handler : WebSocketBehavior
     {
         private readonly IHeadsupExperimentManager _experiment;
-        private readonly IHeadsupGazeManager _gazeManager;
+        private readonly IHeadsupPresentationManager _presentationManager;
         private readonly CaptureManager[] _captureSources;
 
-        public Handler(IHeadsupExperimentManager manager, IHeadsupGazeManager gazeManager, CaptureManager[] sources)
+        public Handler(IHeadsupExperimentManager manager, IHeadsupPresentationManager presentationManager, CaptureManager[] sources)
         {
             _experiment = manager;
-            _gazeManager = gazeManager;
+            _presentationManager = presentationManager;
             _captureSources = sources;
         }
 
@@ -49,29 +49,29 @@ namespace Headsup.Monitoring
             else if (e.Data == "disable_fixation")
             {
                 // Disable the fixation requirement
-                if (_gazeManager != null)
+                if (_presentationManager != null)
                 {
-                    _gazeManager.SetRequireFixation(false);
+                    _presentationManager.SetRequireFixation(false);
                     Send(JsonConvert.SerializeObject("Fixation Disabled"));
                 }
                 else
                 {
-                    Debug.LogWarning("Cannot execute 'disable_fixation' command: No IHeadsupGazeManager available");
-                    Send(JsonConvert.SerializeObject("Error: Gaze manager not available"));
+                    Debug.LogWarning("Cannot execute 'disable_fixation' command: No IHeadsupPresentationManager available");
+                    Send(JsonConvert.SerializeObject("Error: PresentationManager not available"));
                 }
             }
             else if (e.Data == "enable_fixation")
             {
                 // Enable the fixation requirement
-                if (_gazeManager != null)
+                if (_presentationManager != null)
                 {
-                    _gazeManager.SetRequireFixation(true);
+                    _presentationManager.SetRequireFixation(true);
                     Send(JsonConvert.SerializeObject("Fixation Enabled"));
                 }
                 else
                 {
-                    Debug.LogWarning("Cannot execute 'enable_fixation' command: No IHeadsupGazeManager available");
-                    Send(JsonConvert.SerializeObject("Error: Gaze manager not available"));
+                    Debug.LogWarning("Cannot execute 'enable_fixation' command: No IHeadsupPresentationManager available");
+                    Send(JsonConvert.SerializeObject("Error: PresentationManager not available"));
                 }
             }
             else if (e.Data == "start_task")
@@ -130,7 +130,7 @@ namespace Headsup.Monitoring
     /// <summary>
     /// Server component for Headsup system, enables communication to and from Headsup client over the local
     /// network. Listens on defined port and responds to specific commands. Optionally integrates with
-    /// IHeadsupExperimentManager and IHeadsupGazeManager implementations to enable remote experiment control and eye-tracking
+    /// IHeadsupExperimentManager and IHeadsupPresentationManager implementations to enable remote experiment control and eye-tracking
     /// management.
     /// </summary>
     public class HeadsupServer : MonoBehaviour
@@ -142,18 +142,18 @@ namespace Headsup.Monitoring
         // Network port to listen on
         public int port = 4444;
 
-        // Optional GameObjects containing IHeadsupExperimentManager and IHeadsupGazeManager implementations
+        // Optional GameObjects containing IHeadsupExperimentManager and IHeadsupPresentationManager implementations
         [SerializeField]
         [Tooltip("GameObject with a component implementing IHeadsupExperimentManager interface (optional)")]
         private GameObject _experimentManagerObject;
 
         [SerializeField]
-        [Tooltip("GameObject with a component implementing IHeadsupGazeManager interface (optional)")]
-        private GameObject _gazeManagerObject;
+        [Tooltip("GameObject with a component implementing IHeadsupPresentationManager interface (optional)")]
+        private GameObject _presentationManagerObject;
 
         // Interface references
         private IHeadsupExperimentManager _experiment;
-        private IHeadsupGazeManager _gazeManager;
+        private IHeadsupPresentationManager _presentationManager;
 
         // WebSocket server instance
         private WebSocketServer _server;
@@ -196,48 +196,48 @@ namespace Headsup.Monitoring
                 }
             }
 
-            // Try to get gaze manager from serialized GameObject
-            if (_gazeManagerObject != null)
+            // Try to get PresentationManager from serialized GameObject
+            if (_presentationManagerObject != null)
             {
-                _gazeManager = _gazeManagerObject.GetComponent<IHeadsupGazeManager>();
-                if (_gazeManager == null)
+                _presentationManager = _presentationManagerObject.GetComponent<IHeadsupPresentationManager>();
+                if (_presentationManager == null)
                 {
-                    Debug.LogWarning("HeadsupServer: Gaze manager GameObject specified but does not implement IHeadsupGazeManager interface");
+                    Debug.LogWarning("HeadsupServer: PresentationManager GameObject specified but does not implement IHeadsupPresentationManager interface");
                 }
             }
             else if (_experimentManagerObject != null)
             {
-                // Try to get gaze manager from the same GameObject as experiment manager
-                _gazeManager = _experimentManagerObject.GetComponent<IHeadsupGazeManager>();
-                if (_gazeManager != null)
+                // Try to get PresentationManager from the same GameObject as experiment manager
+                _presentationManager = _experimentManagerObject.GetComponent<IHeadsupPresentationManager>();
+                if (_presentationManager != null)
                 {
-                    Debug.Log($"HeadsupServer: Found IHeadsupGazeManager on same GameObject as experiment manager");
+                    Debug.Log($"HeadsupServer: Found IHeadsupPresentationManager on same GameObject as experiment manager");
                 }
             }
             else
             {
-                // Fallback: search scene for any MonoBehaviour implementing IHeadsupGazeManager
+                // Fallback: search scene for any MonoBehaviour implementing IHeadsupPresentationManager
                 MonoBehaviour[] allMonoBehaviours = FindObjectsOfType<MonoBehaviour>();
                 foreach (var mb in allMonoBehaviours)
                 {
-                    if (mb is IHeadsupGazeManager gazeMgr)
+                    if (mb is IHeadsupPresentationManager presentationManager)
                     {
-                        _gazeManager = gazeMgr;
-                        Debug.Log($"HeadsupServer: Found IHeadsupGazeManager implementation on {mb.gameObject.name}");
+                        _presentationManager = presentationManager;
+                        Debug.Log($"HeadsupServer: Found IHeadsupPresentationManager implementation on {mb.gameObject.name}");
                         break;
                     }
                 }
             }
 
-            if (_gazeManager == null)
+            if (_presentationManager == null)
             {
-                Debug.LogWarning("HeadsupServer: No IHeadsupGazeManager found in scene. Gaze control features will be disabled.");
+                Debug.LogWarning("HeadsupServer: No IHeadsupPresentationManager found in scene. Gaze control features will be disabled.");
             }
 
             _logsPreflight = new Queue<string>();
 
             _server = new WebSocketServer(port);
-            _server.AddWebSocketService<Handler>("/", () => new Handler(_experiment, _gazeManager, _captureSources));
+            _server.AddWebSocketService<Handler>("/", () => new Handler(_experiment, _presentationManager, _captureSources));
             _server.Start();
 
             Debug.Log($"HeadsupServer: Started WebSocket server on port {port}");

@@ -76,7 +76,7 @@ public class YourExperimentManager : MonoBehaviour, IHeadsupExperimentManager
 }
 ```
 
-Optionally implement `IHeadsupGazeManager` for eye-tracking integration.
+Optionally implement `IHeadsupPresentationManager` for eye-tracking integration.
 
 ### 2. Add Components to Scene
 
@@ -86,7 +86,7 @@ Optionally implement `IHeadsupGazeManager` for eye-tracking integration.
    - Set port (default: 4444)
    - Assign CaptureManager(s) to Capture Sources
    - Assign experiment manager GameObject
-   - Assign gaze manager GameObject (optional)
+   - Assign PresentationManager GameObject (optional)
 
 ### 3. Connect Client
 
@@ -102,7 +102,7 @@ WebSocket server handling remote commands:
 - `status` - Experiment status from IHeadsupExperimentManager
 - `logs` - Unity console log stream
 - `screenshot` - Capture camera view
-- `enable_fixation` / `disable_fixation` - Control fixation via IHeadsupGazeManager
+- `enable_fixation` / `disable_fixation` - Control fixation via IHeadsupPresentationManager
 - `start_task` - Trigger task start
 - `start_calibration` - Trigger calibration
 - `kill` - Force terminate experiment
@@ -120,7 +120,7 @@ Screenshot capture system:
 ### Interfaces
 
 - `IHeadsupExperimentManager` - Required for experiment integration
-- `IHeadsupGazeManager` - Optional for eye-tracking integration
+- `IHeadsupPresentationManager` - Optional for eye-tracking integration
 
 ## Sample Usage
 
@@ -138,7 +138,7 @@ The package includes a "Basic Setup Example" demonstrating a complete integratio
 The sample includes:
 
 - `ExampleExperimentManager.cs` - Reference implementation of IHeadsupExperimentManager
-- `ExampleGazeManager.cs` - Reference implementation of IHeadsupGazeManager
+- `ExamplePresentationManager.cs` - Reference implementation of IHeadsupPresentationManager
 
 ### Using the Sample
 

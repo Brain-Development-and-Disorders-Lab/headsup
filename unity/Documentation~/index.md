@@ -25,7 +25,7 @@ WebSocket server component for real-time communication with the Headsup Python c
 - **Capture Sources** (`CaptureManager[]`) - Array of CaptureManager components to retrieve screenshots from
 - **Port** (`int`) - Network port to listen on (default: 4444)
 - **Experiment Manager Object** (`GameObject`) - GameObject with IHeadsupExperimentManager implementation (optional)
-- **Gaze Manager Object** (`GameObject`) - GameObject with IHeadsupGazeManager implementation (optional)
+- **Presentation Manager Object** (`GameObject`) - GameObject with IHeadsupPresentationManager implementation (optional)
 - **Update Interval** (`float`) - How often to broadcast status updates in seconds (default: 1.0)
 
 #### Usage
@@ -47,15 +47,15 @@ The server responds to the following WebSocket messages:
 - **status** - Broadcasts experiment status from IHeadsupExperimentManager
 - **logs** - Streams Unity console output to connected clients
 - **screenshot** - Captures and returns screenshots from all capture sources
-- **enable_fixation** - Calls `IHeadsupGazeManager.SetRequireFixation(true)`
-- **disable_fixation** - Calls `IHeadsupGazeManager.SetRequireFixation(false)`
+- **enable_fixation** - Calls `IHeadsupPresentationManager.SetRequireFixation(true)`
+- **disable_fixation** - Calls `IHeadsupPresentationManager.SetRequireFixation(false)`
 - **start_task** - Calls `IHeadsupExperimentManager.StartTask()`
 - **start_calibration** - Calls `IHeadsupExperimentManager.StartCalibration()`
 - **kill** - Calls `IHeadsupExperimentManager.ForceEnd()`
 
 #### Graceful Degradation
 
-The server will continue to function even if IHeadsupExperimentManager or IHeadsupGazeManager implementations are not available. When optional components are missing:
+The server will continue to function even if IHeadsupExperimentManager or IHeadsupPresentationManager implementations are not available. When optional components are missing:
 
 - Commands requiring those components will log warnings and return error messages
 - Status broadcasts will indicate "no_experiment_manager" if IHeadsupExperimentManager is unavailable
@@ -202,7 +202,7 @@ public class MyExperimentManager : MonoBehaviour, IHeadsupExperimentManager
 
 ---
 
-### IHeadsupGazeManager
+### IHeadsupPresentationManager
 
 Interface for integrating eye-tracking/gaze systems with Headsup monitoring.
 
@@ -226,7 +226,7 @@ Controls whether fixation is required before trial progression. Called when "ena
 using UnityEngine;
 using Headsup.Monitoring;
 
-public class MyGazeManager : MonoBehaviour, IHeadsupGazeManager
+public class MyPresentationManager : MonoBehaviour, IHeadsupPresentationManager
 {
     private bool requireFixation = true;
 
@@ -260,7 +260,7 @@ Download and install WebSocketSharp-netstandard DLL into your project's `Assets/
 
 ### 3. Implement Interfaces
 
-Add `IHeadsupExperimentManager` to your experiment controller and optionally `IHeadsupGazeManager` to your gaze controller.
+Add `IHeadsupExperimentManager` to your experiment controller and optionally `IHeadsupPresentationManager` to your presentation controller.
 
 ### 4. Add Components
 
@@ -357,11 +357,11 @@ This warning appears if HeadsupServer cannot find a component implementing IHead
 
 **Solution**: Ensure your experiment manager implements IHeadsupExperimentManager and is referenced in the HeadsupServer inspector.
 
-### "Gaze manager GameObject specified but does not implement IHeadsupGazeManager"
+### "PresentationManager GameObject specified but does not implement IHeadsupPresentationManager"
 
-You assigned a GameObject to the Gaze Manager Object field but it doesn't have a component implementing IHeadsupGazeManager.
+You assigned a GameObject to the PresentationManager Object field but it doesn't have a component implementing IHeadsupPresentationManager.
 
-**Solution**: Add the IHeadsupGazeManager interface to your gaze manager component.
+**Solution**: Add the IHeadsupPresentationManager interface to your PresentationManager component.
 
 ### WebSocket Connection Refused
 

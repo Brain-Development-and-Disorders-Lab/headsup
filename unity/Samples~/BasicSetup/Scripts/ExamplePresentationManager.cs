@@ -1,5 +1,5 @@
 /**
-File: ExampleGazeManager.cs
+File: ExamplePresentationManager.cs
 Author: Henry Burgess <henry.burgess@wustl.edu>
 */
 using UnityEngine;
@@ -9,11 +9,11 @@ using Headsup.Monitoring;
 namespace Headsup.Samples
 {
     /// <summary>
-    /// Example implementation of IHeadsupGazeManager interface.
+    /// Example implementation of IHeadsupPresentationManager interface.
     /// This demonstrates how to integrate your gaze/eye-tracking system with Headsup monitoring.
     /// Replace this with your own gaze manager implementation that controls your actual eye-tracking system.
     /// </summary>
-    public class ExampleGazeManager : MonoBehaviour, IHeadsupGazeManager
+    public class ExamplePresentationManager : MonoBehaviour, IHeadsupPresentationManager
     {
         [SerializeField]
         [Tooltip("Whether fixation is currently required before proceeding with trials")]
@@ -31,7 +31,7 @@ namespace Headsup.Samples
         public void SetRequireFixation(bool requireFixation)
         {
             _requireFixation = requireFixation;
-            Debug.Log($"ExampleGazeManager: Fixation requirement set to: {requireFixation}");
+            Debug.Log($"ExamplePresentationManager: Fixation requirement set to: {requireFixation}");
 
             // Add your fixation control logic here:
             // - Enable/disable gaze contingent displays
@@ -77,12 +77,12 @@ namespace Headsup.Samples
             {
                 if (IsFixationRequirementMet())
                 {
-                    Debug.Log("ExampleGazeManager: Fixation requirement met, allowing action");
+                    Debug.Log("ExamplePresentationManager: Fixation requirement met, allowing action");
                     // Proceed with trial or action
                 }
                 else
                 {
-                    Debug.Log("ExampleGazeManager: Fixation required but not detected");
+                    Debug.Log("ExamplePresentationManager: Fixation required but not detected");
                 }
             }
         }
@@ -91,7 +91,7 @@ namespace Headsup.Samples
         public void SetFixationState(bool isFixating)
         {
             _isFixating = isFixating;
-            Debug.Log($"ExampleGazeManager: Simulated fixation state set to: {isFixating}");
+            Debug.Log($"ExamplePresentationManager: Simulated fixation state set to: {isFixating}");
         }
     }
 }

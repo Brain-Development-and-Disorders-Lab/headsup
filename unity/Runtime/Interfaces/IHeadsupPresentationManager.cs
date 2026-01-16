@@ -1,5 +1,5 @@
 /**
-File: IHeadsupGazeManager.cs
+File: IHeadsupPresentationManager.cs
 Author: Henry Burgess <henry.burgess@wustl.edu>
 */
 
@@ -9,7 +9,7 @@ namespace Headsup.Monitoring
     /// Interface for gaze/eye-tracking managers to integrate with Headsup monitoring system.
     /// Implement this interface in your gaze tracking controller to enable remote fixation control.
     /// </summary>
-    public interface IHeadsupGazeManager
+    public interface IHeadsupPresentationManager
     {
         /// <summary>
         /// Sets whether fixation is required before proceeding with trials.

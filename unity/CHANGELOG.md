@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial Unity Package Manager (UPM) package release
 - Interface-based dependency injection system
   - `IHeadsupExperimentManager` interface for experiment control integration
-  - `IHeadsupGazeManager` interface for eye-tracking/gaze control integration
+  - `IHeadsupPresentationManager` interface for eye-tracking/gaze control integration
 - Core components:
   - `HeadsupServer` - WebSocket server for remote monitoring and control
   - `CaptureManager` - Screenshot capture system for VR cameras
@@ -25,10 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `start_task` - Task initiation
   - `start_calibration` - Calibration trigger
   - `kill` - Experiment termination
-- Graceful degradation when optional components (IHeadsupExperimentManager, IHeadsupGazeManager) are unavailable
+- Graceful degradation when optional components (IHeadsupExperimentManager, IHeadsupPresentationManager) are unavailable
 - Sample implementation with example scripts:
   - `ExampleExperimentManager` - Reference IHeadsupExperimentManager implementation
-  - `ExampleGazeManager` - Reference IHeadsupGazeManager implementation
+  - `ExamplePresentationManager` - Reference IHeadsupPresentationManager implementation
 - Comprehensive documentation:
   - API reference documentation
   - Step-by-step setup guide
@@ -65,7 +65,7 @@ For users upgrading from loose scripts:
 1. Remove old `CaptureManager.cs` and `HeadsupServer.cs` from Assets folder
 2. Install package via UPM
 3. Add `IHeadsupExperimentManager` interface to your experiment manager class
-4. Add `IHeadsupGazeManager` interface to your gaze manager class (if applicable)
+4. Add `IHeadsupPresentationManager` interface to your PresentationManager class (if applicable)
 5. Update `using` statements to include `Headsup.Monitoring` namespace
 6. Reassign component references in HeadsupServer inspector
 7. Install WebSocketSharp-netstandard DLL if not already present

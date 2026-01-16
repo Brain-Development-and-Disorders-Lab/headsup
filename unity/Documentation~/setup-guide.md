@@ -158,7 +158,7 @@ public class YourExperimentManager : MonoBehaviour, IHeadsupExperimentManager  /
 }
 ```
 
-### Step 3: Implement IHeadsupGazeManager (Optional)
+### Step 3: Implement IHeadsupPresentationManager (Optional)
 
 If you have eye-tracking/gaze control, add the interface:
 
@@ -166,7 +166,7 @@ If you have eye-tracking/gaze control, add the interface:
 using UnityEngine;
 using Headsup.Monitoring;
 
-public class YourGazeManager : MonoBehaviour, IHeadsupGazeManager
+public class YourPresentationManager : MonoBehaviour, IHeadsupPresentationManager
 {
     private bool requireFixation = true;
 
@@ -202,7 +202,7 @@ public class YourGazeManager : MonoBehaviour, IHeadsupGazeManager
 3. Configure HeadsupServer in Inspector:
    - **Port**: Leave as 4444 (default) or change if needed
    - **Experiment Manager Object**: Drag the GameObject with your IHeadsupExperimentManager implementation
-   - **Gaze Manager Object**: (Optional) Drag GameObject with IHeadsupGazeManager implementation
+   - **PresentationManager Object**: (Optional) Drag GameObject with IHeadsupPresentationManager implementation
    - **Update Interval**: 1.0 second (adjust as needed)
 
 ### Step 2: Add CaptureManager to Camera(s)
@@ -248,7 +248,7 @@ public class YourGazeManager : MonoBehaviour, IHeadsupGazeManager
 
 3. If you see warnings:
    - "No IHeadsupExperimentManager found" - Check interface implementation and assignment
-   - "No IHeadsupGazeManager found" - Normal if you didn't implement it (optional)
+   - "No IHeadsupPresentationManager found" - Normal if you didn't implement it (optional)
 
 ### Connect Python Client
 
